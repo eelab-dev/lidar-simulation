@@ -8,6 +8,7 @@
 #include "Camera.hpp" 
 #include <fstream>
 #include "common.hpp"
+#include "FileProcessor.hpp"
 
 #include <chrono>
 #include <sycl/sycl.hpp>
@@ -28,43 +29,37 @@ return (int)(255*(std::pow(clamp(x, 0.0, 1.0), 1/2.2)));
 
 int main(int argc, char* argv[]){
   
-  std::string ModelDir;
-  std::string ModelName;
-  std::string outputFile;
-  std::cout << "Number of arguments: " << argc << std::endl;
-
-  if(argc == 1)
-  {
-    std::string file_path = __FILE__;
-    std::string dir_path = file_path.substr(0, file_path.rfind("/"));
-    dir_path = dir_path.substr(0, dir_path.rfind("/"));
-    std::cout<<dir_path<<std::endl;
-    ModelDir = dir_path;
-    ModelName = "cornell_box.obj";
-    outputFile = "./outputtest.txt";
-  }
-  else if(argc == 4)
-  {
-    ModelDir = std::string(argv[1]);
-    ModelName = std::string(argv[2]);
-    outputFile = std::string(argv[3]);
-  }
-
-
-  
-  // std::string ModelDir = dir_path + "/Model/";
-  
-  // // Set up the camera parameters
-  int imageWidth = 1000;
-  int imageHeight = 1000;
+  std::string inputFile = "./Model/cornell_box.obj";
+  std::string outputFile = "./outputtest.txt";
+  int imageWidth = 500;
+  int imageHeight = 500;
   float fov = 40.0f; // Field of view in degrees
+  int ssp = 256*1000 ;
 
 
-  // //Camera position and look direction for the Cornell Box
-  
-  // Vec3 cameraPosition(278.0f, 278.0f, -800.0f); // Example camera position
-  // Vec3 lookAt(278.0f, 278.0f, 0.0f); // Look at the center of the Cornell Box
-  // Vec3 up(0.0f, 1.0f, 0.0f); // Up direction
+  // Parse flags
+  std::unordered_map<std::string, std::string> args = parseFlags(argc, argv);
+
+  // Handle known flags
+  if (args.count("--model")) inputFile = args["--model"];
+  if (args.count("--output")) outputFile = args["--output"];
+  if (args.count("--width")) imageWidth = std::stoi(args["--width"]);
+  if (args.count("--height")) imageHeight = std::stoi(args["--height"]);
+  if (args.count("--fov")) fov = std::stof(args["--fov"]);
+  if (args.count("--ssp")) ssp = std::stoi(args["--ssp"]);
+
+
+  // Extract directory and file name
+  size_t pos = inputFile.find_last_of('/');
+  std::string ModelDir = inputFile.substr(0, pos);
+  std::string ModelName = inputFile.substr(pos);
+
+
+
+  OBJ_Loader loader;
+  loader.addTriangleObjectFile(ModelDir, ModelName);
+
+  Triangle_OBJ_result TriangleResult = loader.outputTrangleResult();
 
   Vec3 cameraPosition(0.0f, 274.0f, 1280.0f); // Example camera position
   Vec3 lookAt(0.0f, 274.0f, 0.0f); // Look at the center of the Cornell Box
@@ -74,15 +69,11 @@ int main(int argc, char* argv[]){
 
   Camera camera(imageWidth, imageHeight, fov, cameraPosition, lookAt, up);
 
-  int ssp = 64*1000 ;
+ 
 
 
 
 
-OBJ_Loader loader;
-loader.addTriangleObjectFile(ModelDir, ModelName);
-
-Triangle_OBJ_result TriangleResult = loader.outputTrangleResult();
 
 std::cout << "hello from GPGPU\n" <<std::endl;
 sycl::queue myQueue(sycl::gpu_selector_v);
@@ -104,23 +95,19 @@ sycl::buffer<syclScene, 1> scenebuf(&scene, sycl::range<1>(1));
 // std::vector<Vec3>
 constexpr size_t recordSize = 64*1200*900;
 
-struct record{
-  float x=0;
-  float y=0;
-  float z=0;
-};
 
-std::vector<record> directionRecord(recordSize);
-std::vector<record> positionRecord(recordSize);
+
+std::vector<Vec3> directionRecord(recordSize);
+std::vector<Vec3> positionRecord(recordSize);
 std::vector<int> collisionRecord(recordSize);
 std::vector<float> travelDistanceRecord(recordSize);
-int recordIndex = 0;
+int recordNum = 0;
 
 
 
-sycl::buffer<record, 1> direction_buf(directionRecord.data(), sycl::range<1>(recordSize));
-sycl::buffer<record, 1> position_buf(positionRecord.data(), sycl::range<1>(recordSize));
-sycl::buffer<int, 1> counter_buf(&recordIndex, sycl::range<1>(1));
+sycl::buffer<Vec3, 1> direction_buf(directionRecord.data(), sycl::range<1>(recordSize));
+sycl::buffer<Vec3, 1> position_buf(positionRecord.data(), sycl::range<1>(recordSize));
+sycl::buffer<int, 1> counter_buf(&recordNum, sycl::range<1>(1));
 sycl::buffer<int, 1> collision_buf(collisionRecord.data(), sycl::range<1>(recordSize));
 sycl::buffer<float,1> travelDistance_buf(travelDistanceRecord.data(), sycl::range<1>(recordSize));
 
@@ -215,51 +202,26 @@ myQueue.update_host(collision_buf.get_access());
 myQueue.update_host(travelDistance_buf.get_access());
 std::cout << "finished rendering" << std::endl;
 
-// for (int j = 0; j < imageHeight; ++j)
-// {
-//      for (int i = 0; i < imageWidth; ++i) 
-//     {
+
+HDF5Writer writer(outputFile);
+
+for(int i = 0;i<recordNum;i++){
 
 
-//       auto currentColor = image[i + j * imageWidth];
+  if(collisionRecord[i]>0){
+    writer.writeRecord(collisionRecord[i],travelDistanceRecord[i],positionRecord[i],directionRecord[i]);
+  }
 
-//       auto r = compoentToint(currentColor.x);
-//       auto g = compoentToint(currentColor.y);
-//       auto b = compoentToint(currentColor.z);
-
-
-
-//       file << r << " " << g << " " << b << " "; 
-//     }
-// }
-
-
-
-
-
-
-// store the position and direction of the ray
-std::ofstream positionFile(outputFile);
-std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
-if(!positionFile.is_open()){
-    
-    std::cerr << "Error: Could not open file " << outputFile << std::endl;
-    return -1;
 }
 
-for(int i = 0; i < recordIndex; i++){
-    positionFile << "(" << collisionRecord[i] << ") " << std::endl;
-    positionFile << "{" << travelDistanceRecord[i]<< "}" << std::endl;
-    positionFile << positionRecord[i].x << " " << positionRecord[i].y << " " << positionRecord[i].z << std::endl;
-    positionFile << directionRecord[i].x << " " << directionRecord[i].y << " " << directionRecord[i].z << std::endl;
-}
+writer.finalizeFile();
 
-positionFile.close();
+
 
 auto endTime = std::chrono::high_resolution_clock::now();
 std::chrono::duration<double> executionTime = endTime - startTime;
 std::cout << "Rendering time = " << (std::chrono::duration_cast<std::chrono::milliseconds>(executionTime).count())/1000.0f << "s" << std::endl;
-std::cout << "Final value of the shared counter: " << recordIndex << std::endl;
+std::cout << "Final value of the shared counter: " << recordNum<< std::endl;
 
 
 return 0;

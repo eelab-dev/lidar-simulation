@@ -24,18 +24,21 @@ for ((i=1; i<=1; i++))
 do
     model_file="${globalPrefix}_obj_${i}.obj"
     model_file_path="${model_dir}/${model_file}"
-    python3 ./genScene/scenGen.py "${model_file_path}"|| { echo "Error running scenGen.py"; exit 1; }
+    python3 scenGen.py "${model_file_path}"|| { echo "Error running scenGen.py"; exit 1; }
 
-    rawData_file="${globalPrefix}_rawData_${i}.txt"
+    rawData_file="${globalPrefix}_rawData_${i}.h5"
     rawData_file_path="${rawData_dir}/${rawData_file}"
-    ./syclImplementation/build/HELLOEMBREE "${model_dir}/" "${model_file}" "${rawData_file_path}" || { 
+    
+    ./syclImplementation/build/LiDARSimulation \
+    --model "${model_file_path}" \
+    --output "${rawData_file_path}" || { 
     echo "Error running HELLOEMBREE"; 
     exit 1;} 
 
-    histogram_file="${globalPrefix}_histogram_${i}.txt"
+    histogram_file="${globalPrefix}_histogram_${i}.h5"
     histogram_file_path="${histogram_dir}/${histogram_file}"
 
-    python3 lens.py "${rawData_file_path}" "${histogram_file_path}"|| { echo "Error running lens.py"; exit 1; }
+    python3 lens.py --input_file "${rawData_file_path}" --output_file "${histogram_file_path}"|| { echo "Error running lens.py"; exit 1; }
 
     depthImage_file="${globalPrefix}_depth${i}.png"
     depthImage_file_path="${depthImage_dir}/${depthImage_file}"

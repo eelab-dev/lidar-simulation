@@ -25,3 +25,16 @@ else
     echo "Error: tinyobjloader failed to set up."
     exit 1
 fi
+
+
+# Update package lists
+echo "Updating package lists..."
+sudo apt-get update
+
+# Install HDF5 development library
+echo "Installing HDF5 development library..."
+sudo apt-get install -y libhdf5-dev
+
+# Verify installation
+echo "Checking HDF5 installation..."
+dpkg -l | grep libhdf5-dev && echo "HDF5 installed successfully!" || echo "HDF5 installation failed!"

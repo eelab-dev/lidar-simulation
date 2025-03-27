@@ -9,7 +9,7 @@ set(CMAKE_C_COMPILER /opt/intel/oneapi/compiler/latest/bin/icx)
 set(CMAKE_CXX_COMPILER /opt/intel/oneapi/compiler/latest/bin/icpx)
 
 
-project(HELLOEMBREE)
+project(LiDARSimulation)
 
 
 if(ENABLE_DEBUG)
@@ -24,6 +24,8 @@ endif()
 
    # add_compile_options(-fsycl)
 FIND_PACKAGE(IntelSYCL REQUIRED)
+FIND_PACKAGE(HDF5 REQUIRED COMPONENTS C CXX)
+
 if(ENABLE_GPGPU)
    set(SYCL_FLAGS "-fsycl"
          "-fsycl-targets=nvptx64-nvidia-cuda"
@@ -38,11 +40,6 @@ else()
 endif()
 
 
-if(ENABLE_DEBUG)
-  
-endif()
-
-
 GET_FILENAME_COMPONENT(PARENT_DIR ${CMAKE_SOURCE_DIR} DIRECTORY)
 
 
@@ -52,32 +49,15 @@ else()
    ADD_SUBDIRECTORY(${PARENT_DIR}/external/tinyobjloader ${CMAKE_SOURCE_DIR}/build/external/tinyobjloader)
 endif()
 
-#target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/tinyobjloader)
-#make sure to include the model directory so that obj files can be loaded   
-#include_directories(${CMAKE_SOURCE_DIR}/Model)
-#message(${CMAKE_SOURCE_DIR}/external/tinyobjloader)
-#FIND_PACKAGE(embree 4 REQUIRED)
-#FIND_PACKAGE(glm REQUIRED)
-
-#include all the files in the src directory
-#file(GLOB SOURCES "src/*.cpp")
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${CMAKE_SOURCE_DIR} Test.cpp) #external/tinyobjloader/tiny_obj_loader.cc)
 
-# TARGET_LINK_LIBRARIES(${PROJECT_NAME} embree)
-# TARGET_LINK_LIBRARIES(${PROJECT_NAME} glm::glm)
-
-
-# TARGET_COMPILE_DEFINITIONS( ${PROJECT_NAME} PRIVATE ENABLE_SYCL=${ENABLE_SYCL})
-# IF(ENABLE_GPGPU)
-# TARGET_COMPILE_DEFINITIONS( ${PROJECT_NAME} PRIVATE ENABLE_GPGPU=${ENABLE_GPGPU})
-# ENDIF()
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/build/external/tinyobjloader /opt/intel/oneapi/compiler/latest/linux/include )
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/build/external/tinyobjloader /opt/intel/oneapi/compiler/latest/linux/include ${HDF5_INCLUDE_DIRS})
 
 if(ENABLE_DEBUG)
-   TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC tinyobjloader sycl ${SYCL_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=all  -static-libsan)
+   TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC tinyobjloader sycl ${SYCL_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=all  -static-libsan ${HDF5_CXX_LIBRARIES} ${HDF5_LIBRARIES})
 else()
-   TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC tinyobjloader sycl ${SYCL_FLAGS})
+   TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC tinyobjloader sycl ${SYCL_FLAGS} ${HDF5_CXX_LIBRARIES} ${HDF5_LIBRARIES})
 endif()
 
 TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PUBLIC ${SYCL_FLAGS})
