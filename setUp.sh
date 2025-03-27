@@ -26,15 +26,44 @@ else
     exit 1
 fi
 
-
 # Update package lists
 echo "Updating package lists..."
 sudo apt-get update
 
-# Install HDF5 development library
-echo "Installing HDF5 development library..."
-sudo apt-get install -y libhdf5-dev
+# Check if HDF5 development library is already installed
+if dpkg -s libhdf5-dev &> /dev/null; then
+    echo "libhdf5-dev is already installed. Skipping installation."
+else
+    # Install HDF5 development library
+    echo "Installing HDF5 development library..."
+    sudo apt-get install -y libhdf5-dev
+fi
 
 # Verify installation
 echo "Checking HDF5 installation..."
-dpkg -l | grep libhdf5-dev && echo "HDF5 installed successfully!" || echo "HDF5 installation failed!"
+if dpkg -l | grep -q libhdf5-dev; then
+    echo "✅ HDF5 installed successfully!"
+else
+    echo "❌ HDF5 installation failed!"
+    exit 1
+fi
+
+# ─── Python Virtual Environment Setup ────────────────────────────────
+
+# Check if requirements.txt exists
+if [ ! -f "requirements.txt" ]; then
+    echo "Warning: requirements.txt not found. Skipping virtual environment setup."
+    exit 0
+fi
+
+# Create a virtual environment if it doesn't exist
+if [ ! -d ".venv" ]; then
+    echo "Creating Python virtual environment in .venv..."
+    python3 -m venv .venv
+fi
+
+# Activate the virtual environment and install requirements
+echo "Activating virtual environment and installing dependencies..."
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt

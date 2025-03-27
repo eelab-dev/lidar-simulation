@@ -18,9 +18,9 @@ if __name__ == "__main__":
 
     pixels, image_width, image_heigh = decode_file(input_file_path)
     print(pixels[200][300])
-    myRange = [2000,3200]
+    myRange = [2000,3300]
     # image = form_image(pixels, image_heigh,image_width)
-    image, illegal_photon, stamped_histogram, stamped_collosioin = form_histogram_image(pixels, image_heigh,image_width,bin_number=40,range_distance=myRange)
+    image, illegal_photon, stamped_histogram, stamped_collosioin = form_histogram_image(pixels, image_heigh,image_width,bin_number=35 ,range_distance=myRange)
     display_image(image,None,output_image_name,distance_range=myRange)
 
 

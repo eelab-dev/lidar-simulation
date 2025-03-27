@@ -203,7 +203,7 @@ myQueue.update_host(travelDistance_buf.get_access());
 std::cout << "finished rendering" << std::endl;
 
 
-HDF5Writer writer(outputFile);
+HDF5Writer writer(outputFile, fov, imageHeight, imageWidth);
 
 for(int i = 0;i<recordNum;i++){
 

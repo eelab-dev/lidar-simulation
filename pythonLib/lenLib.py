@@ -140,3 +140,11 @@ def read_raw_data(file_name):
         print(f"Error opening HDF5 file: {e}")
 
     return photons, failed_lines
+ 
+def read_file_parameter(h5_filename):
+    with h5py.File(h5_filename, 'r') as f:
+        height = int(f.attrs['ImageHeight'])
+        width = int(f.attrs['ImageWidth'])
+        fov = float(f.attrs['FOV'])
+
+    return fov, height, width

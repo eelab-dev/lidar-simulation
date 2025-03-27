@@ -40,22 +40,22 @@ private:
     };
 
 public:
-    explicit HDF5Writer(const std::string& outputFilename);
+    explicit HDF5Writer(const std::string& outputFilename,float fov, int height, int width);
     void finalizeFile();
     void writeRecord(int collisionCount, float distance, Vec3 collisionLocation, Vec3 collisionDirection);
 private:
-    void initializeFile();
+    void initializeFile(float fov,int height,int width);
 };
 
 // Constructor
-HDF5Writer::HDF5Writer(const std::string& outputFilename)
+HDF5Writer::HDF5Writer(const std::string& outputFilename, float fov = 50, int height = 500, int width = 500)
     : filename(outputFilename), current_index(0),
       file(H5::H5File(outputFilename, H5F_ACC_TRUNC)) {
-    initializeFile();
+    initializeFile(fov, height, width);
 }
 
 
-void HDF5Writer::initializeFile() {
+void HDF5Writer::initializeFile(float fov = 50, int image_height = 500, int image_width = 500) {
 
     hsize_t init_size[1] = {0};  // Start with 0 records
     hsize_t max_size[1] = {H5S_UNLIMITED};  // Allow unlimited records
@@ -82,6 +82,12 @@ void HDF5Writer::initializeFile() {
     // Create dataset with unlimited size
     datasetCollision = file.createDataSet("CollisionData", compType, space, prop);
 
+    // Create scalar dataspace for single values
+    H5::DataSpace scalar_space = H5::DataSpace(H5S_SCALAR);
+
+    file.createAttribute("FOV", H5::PredType::NATIVE_FLOAT, scalar_space).write(H5::PredType::NATIVE_FLOAT, &fov);
+    file.createAttribute("ImageHeight", H5::PredType::NATIVE_INT, scalar_space).write(H5::PredType::NATIVE_INT, &image_height);
+    file.createAttribute("ImageWidth", H5::PredType::NATIVE_INT, scalar_space).write(H5::PredType::NATIVE_INT, &image_width);
 }
 
 
