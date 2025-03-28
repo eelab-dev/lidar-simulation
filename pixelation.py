@@ -1,5 +1,5 @@
 import sys
-from pythonLib.lenLib import*
+from pythonLib.pixelationLib import*
 import argparse
 
 if __name__ == "__main__":

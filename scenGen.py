@@ -2,11 +2,16 @@ import numpy as np
 import random 
 import sys
 from pythonLib.scenGenLib import*
+import argparse
 # Main execution
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Export a Cornell Box scene to OBJ format.")
+    parser.add_argument("-o", "--output_file", type=str, default="cornell_box.obj", help="Output OBJ file path")
+
     output_file = "cornell_box.obj"
-    if len(sys.argv) > 1:
-        output_file = sys.argv[1]
+    args = parser.parse_args()
+    if args.output_file:
+        output_file = args.output_file
 
     # Material properties
     materials = {
@@ -59,6 +64,16 @@ if __name__ == "__main__":
     tall_block = scene_obj.create_box_with_material([tall_block_width, tall_block_height, tall_block_depth],
                                                     [block_x, tall_block_height / 2, -150 + distance], "white")
     scene_obj.add_geometry(tall_block, geom_name="tall_box")
+
+
+    short_block = scene_obj.create_box_with_material(
+        [short_block_width, short_block_height, short_block_depth],
+        [block_x, short_block_height / 2, -150],
+        "white"
+    )
+    scene_obj.add_geometry(short_block, geom_name = "short_box")
+
+
 
     # Print scene parameters
     print(f"📌 Box dimensions: {box_width}, {box_height}, {box_depth}")

@@ -72,7 +72,7 @@ def get_histogram(pixels, rectangle):
 
 
 
-def form_image(pixels, image_width, image_heigh):
+def form_average_image(pixels, image_width, image_heigh):
     # form the image from the pixels
     image = np.zeros((image_width, image_heigh))
 
@@ -142,3 +142,56 @@ def display_image(image, rectangle=None, imageFileName = "./", distance_range = 
     plt.colorbar()
     plt.savefig(imageFileName, format='png', dpi=600, transparent=True)
     plt.show()
+
+
+def save_histogram_to_h5(filename, stamped_histogram, stamped_collosion,
+                          range_min, range_max, image_width, image_height, bin_number):
+    """
+    Save histogram and collision data to an HDF5 file with metadata.
+
+    Parameters:
+    - filename (str): Output HDF5 file path
+    - stamped_histogram (np.ndarray): Histogram data [H, W, B]
+    - stamped_collosion (np.ndarray): Average collision data [H, W, B]
+    - range_min (float): Minimum distance
+    - range_max (float): Maximum distance
+    - image_width (int): Width of the image
+    - image_height (int): Height of the image
+    - bin_number (int): Number of bins
+    """
+    with h5py.File(filename, 'w') as h5f:
+        h5f.create_dataset("stamped_histogram", data=stamped_histogram, compression="gzip")
+        h5f.create_dataset("stamped_collosion", data=stamped_collosion, compression="gzip")
+
+        # Add metadata
+        h5f.attrs["range_min"] = range_min
+        h5f.attrs["range_max"] = range_max
+        h5f.attrs["image_width"] = image_width
+        h5f.attrs["image_height"] = image_height
+        h5f.attrs["bin_number"] = bin_number
+
+def read_histogram_from_h5(filename):
+    """
+    Reads histogram data and metadata from an HDF5 file.
+
+    Parameters:
+    - filename (str): Path to the .h5 file
+
+    Returns:
+    - stamped_histogram (np.ndarray)
+    - stamped_collosion (np.ndarray)
+    - metadata (dict): Includes range_min, range_max, image_width, image_height, bin_number
+    """
+    with h5py.File(filename, 'r') as h5f:
+        stamped_histogram = h5f["stamped_histogram"][:]
+        stamped_collosion = h5f["stamped_collosion"][:]
+
+        metadata = {
+            "range_min": h5f.attrs["range_min"],
+            "range_max": h5f.attrs["range_max"],
+            "image_width": h5f.attrs["image_width"],
+            "image_height": h5f.attrs["image_height"],
+            "bin_number": h5f.attrs["bin_number"],
+        }
+
+    return stamped_histogram, stamped_collosion, metadata

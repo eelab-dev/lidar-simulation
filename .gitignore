@@ -23,3 +23,4 @@ syclImplementation/__pycache__/
 *.png
 __pycache__/
 .venv
+external
