@@ -1,5 +1,6 @@
 import trimesh
-
+import numpy as np
+import pywavefront
 class scene:
     def __init__(self, materials):
         self._scene = trimesh.Scene()
@@ -34,7 +35,7 @@ class scene:
             specular=material.get("Ks", [0, 0, 0]),
             emissive=material.get("Ke", [0, 0, 0]),
         )
-        # box.visual.material.name = material_name
+        box.visual.material.name = material_name
         return box
 
     def export_scene(self, output_file="cornell_box.obj"):
@@ -50,47 +51,66 @@ class scene:
             self._scene.delete_geometry(name)
 
     @classmethod
-    def from_obj(cls, obj_file: str): 
-        loaded = trimesh.load(obj_file, force='scene')
+    def from_obj(cls, obj_file: str):
+    # Load the OBJ and MTL using pywavefront
+        wavefront_scene = pywavefront.Wavefront(
+            obj_file,
+            collect_faces=True,
+            create_materials=True,
+            parse=True,
+        )
 
-        # Initialize an empty material dictionary
+        # Extract materials
         materials = {}
-        scene = trimesh.load(obj_file, force='scene')
-
-        print("Object | Geometry | Material")
-
-        for geometry_name, geom in scene.geometry.items():
-            print(f"\n[Geometry: {geometry_name}]")
-            mat = geom.visual.material
-            print(f"Material class: {type(mat)}")
-            print(f"Material name: {getattr(mat, 'name', 'None')}")
-            print(f"Material diffuse: {getattr(mat, 'diffuse', 'N/A')}")
-
-        # Collect materials properly
-        if isinstance(loaded, trimesh.Scene):
-            for name, geom in loaded.geometry.items():
-                mat = geom.visual.material
-                mat_name = getattr(mat, 'name', None) or f"default_{name}"
-                # Store material properties (avoid duplication)
-                if mat_name not in materials:
-                    materials[mat_name] = {
-                        "Ka": getattr(mat, 'ambient', [0, 0, 0]),
-                        "Kd": getattr(mat, 'diffuse', [1, 1, 1]),
-                        "Ks": getattr(mat, 'specular', [0, 0, 0]),
-                        "Ke": getattr(mat, 'emissive', [0, 0, 0]),
-                    }
-        elif isinstance(loaded, trimesh.Trimesh):
-            mat = loaded.visual.material
-            mat_name = getattr(mat, 'name', "default_material")
-            materials[mat_name] = {
-                "Ka": getattr(mat, 'ambient', [0, 0, 0]),
-                "Kd": getattr(mat, 'diffuse', [1, 1, 1]),
-                "Ks": getattr(mat, 'specular', [0, 0, 0]),
-                "Ke": getattr(mat, 'emissive', [0, 0, 0]),
+        for mat in wavefront_scene.materials.values():
+            materials[mat.name] = {
+                "Ka": mat.ambient or [0, 0, 0],
+                "Kd": mat.diffuse or [1, 1, 1],
+                "Ks": mat.specular or [0, 0, 0],
+                "Ke": [0, 0, 0],
             }
 
-        # Create the SceneWrapper instance
+        # Create scene instance
         instance = cls(materials)
-        instance._scene = loaded if isinstance(loaded, trimesh.Scene) else trimesh.Scene(loaded)
+
+
+        # Global vertex pool
+        global_vertices = np.array(wavefront_scene.vertices, dtype=np.float32)
+
+        # Process each mesh
+        for mesh in wavefront_scene.mesh_list:
+            name = mesh.name
+            if not mesh.faces:
+                continue
+
+            faces = np.array(mesh.faces, dtype=np.int32)
+
+            # Step 1: Find used vertex indices
+            used = np.unique(faces.flatten())
+
+            # Step 2: Extract only used vertices
+            vertices = global_vertices[used]
+
+            # Step 3: Remap face indices to local vertex array
+            index_map = {old: new for new, old in enumerate(used)}
+            remapped_faces = np.array([[index_map[i] for i in face] for face in faces], dtype=np.int32)
+
+            # Step 4: Create trimesh geometry
+            geom = trimesh.Trimesh(vertices=vertices, faces=remapped_faces, process=False)
+
+            # Step 5: Apply material
+            mat_name = mesh.materials[0].name if mesh.materials else "white"
+            mat_data = materials.get(mat_name, materials["white"])
+            geom.visual = trimesh.visual.TextureVisuals(material=mat_data)
+            geom.visual.material = trimesh.visual.material.SimpleMaterial(
+                name=mat_name,
+                ambient=mat_data["Ka"],
+                diffuse=mat_data["Kd"],
+                specular=mat_data["Ks"],
+                emissive=mat_data["Ke"],
+            )
+            geom.visual.material.name = mat_name
+            # Step 6: Add to scene
+            instance.add_geometry(geom, geom_name=name)
 
         return instance
