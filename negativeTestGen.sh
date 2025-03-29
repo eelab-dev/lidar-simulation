@@ -11,14 +11,16 @@ cd "$SCRIPT_DIR" || exit 1
 source .venv/bin/activate
 
 # Define directories
-dataSet_dir="positive"
-model_dir="$dataSet_dir/model"
+dataSet_dir="negative"
+model_dir="$dataSet_dir/Model"
 rawData_dir="$dataSet_dir/rawData"
 histogram_dir="$dataSet_dir/histogramData"
 pixelized_dir="$dataSet_dir/pixelizedData"
 depthImage_dir="$dataSet_dir/depthImage"
-globalPrefix="positive"
+globalPrefix="negative"
 
+positive_globalPrefix="positive"
+positive_dir="positive"
 # Create directories if they don't exist
 mkdir -p "$dataSet_dir"
 mkdir -p "$model_dir"
@@ -27,13 +29,13 @@ mkdir -p "$histogram_dir"
 
 for ((i=1; i<=1; i++))
 do
+    positive_obj_file="${positive_dir}/model/${positive_globalPrefix}_obj_${i}.obj"
     model_file="${globalPrefix}_obj_${i}.obj"
     model_file_path="${model_dir}/${model_file}"
-    python3 pythonScripts/scenGen.py \
-    --output_file "${model_file_path}"|| { 
-    echo "Error running scenGen.py";
-    exit 1; }
-
+    python3 pythonScripts/removeSmallBox.py \
+    --input_file "${positive_obj_file}"\
+    --output_file "${model_file_path}" \
+     
     rawData_file="${globalPrefix}_rawData_${i}.h5"
     rawData_file_path="${rawData_dir}/${rawData_file}"
     
