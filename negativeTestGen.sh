@@ -41,7 +41,8 @@ do
     
     ./syclImplementation/build/LiDARSimulation \
     --model "${model_file_path}" \
-    --output "${rawData_file_path}" || { 
+    --output "${rawData_file_path}" \
+    --seed 321 || { 
     echo "Error running HELLOEMBREE"; 
     exit 1;} 
 

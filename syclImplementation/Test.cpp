@@ -35,7 +35,7 @@ int main(int argc, char* argv[]){
   int imageHeight = 500;
   float fov = 40.0f; // Field of view in degrees
   int ssp = 256*1000 ;
-
+  unsigned int seed = 123;  
 
   // Parse flags
   std::unordered_map<std::string, std::string> args = parseFlags(argc, argv);
@@ -47,6 +47,7 @@ int main(int argc, char* argv[]){
   if (args.count("--height")) imageHeight = std::stoi(args["--height"]);
   if (args.count("--fov")) fov = std::stof(args["--fov"]);
   if (args.count("--ssp")) ssp = std::stoi(args["--ssp"]);
+  if (args.count("--seed")) seed = std::stoi(args["--seed"]);
 
 
   // Extract directory and file name
@@ -64,7 +65,6 @@ int main(int argc, char* argv[]){
   Vec3 cameraPosition(0.0f, 274.0f, 1280.0f); // Example camera position
   Vec3 lookAt(0.0f, 274.0f, 0.0f); // Look at the center of the Cornell Box
   Vec3 up(0.0f, 1.0f, 0.0f); // Up direction
-  unsigned int seed = 123;  
 
 
   Camera camera(imageWidth, imageHeight, fov, cameraPosition, lookAt, up);
