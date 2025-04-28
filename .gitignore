@@ -24,3 +24,6 @@ syclImplementation/__pycache__/
 __pycache__/
 .venv
 external
+positive/
+negative/
+*.h5

@@ -14,7 +14,7 @@ source .venv/bin/activate
 
 dataSet_dir="singTest" 
 mkdir -p "${dataSet_dir}"
-model_file_path="positive/model/positive_obj_1.obj"
+model_file_path="negative/model/negative_obj_1.obj"
 globalPrefix="single"
 rawData_file_path="${dataSet_dir}/${globalPrefix}_rawData.h5"
 pixelized_file_path="${dataSet_dir}/${globalPrefix}_pixelized.h5"
@@ -24,7 +24,7 @@ depthImage_file_path="${dataSet_dir}/${globalPrefix}_depth.png"
 ./syclImplementation/build/LiDARSimulation \
  --model "${model_file_path}" \
  --output "${rawData_file_path}"\
- --seed 321 || { 
+ --seed 123|| { 
 echo "Error running simulation"; 
 exit 1;} 
 

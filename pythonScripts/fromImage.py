@@ -48,7 +48,7 @@ if __name__ == "__main__":
     
     # image = form_image(pixels, image_heigh,image_width)
     image, illegal_photon, stamped_histogram, stamped_collosioin = form_histogram_image(pixels, image_heigh,image_width,bin_number=input_bin_number,range_distance=myRange)
-    display_image(image,None,output_image_name,distance_range=myRange)
+    save_image(image,None,output_image_name,distance_range=myRange)
     if args.output_file:
         outputFile = args.output_file
         save_histogram_to_h5(outputFile, stamped_histogram, stamped_collosioin ,range_min, range_max, image_width, image_heigh, input_bin_number)

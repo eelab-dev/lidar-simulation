@@ -119,9 +119,7 @@ def form_histogram_image(pixels, image_width, image_height,bin_number = 25, rang
                 distance_image[i, j] = range_min + (max_bin_index + 0.5) * bin_width
     return distance_image, illegal_photon, stamped_histogram, stamped_collosion
 
-def display_image(image, rectangle=None, imageFileName = "./", distance_range = [2100,3000]):
-    # display the image
-    # Create the colormap
+def save_image(image, rectangle=None,imageFileName = "./",distance_range=[2100,3000]):
     depthmap = mcolors.LinearSegmentedColormap.from_list('depth_cmap', colors, N=256)
     cmap = depthmap
     cmap.set_bad(color='black')
@@ -141,6 +139,31 @@ def display_image(image, rectangle=None, imageFileName = "./", distance_range = 
     plt.imshow(show_image,cmap=cmap ,vmin = range_min,vmax=range_max ,interpolation='nearest')
     plt.colorbar()
     plt.savefig(imageFileName, format='png', dpi=600, transparent=True)
+    # plt.show()
+
+
+def display_image(image, rectangle=None,distance_range = [2100,3000]):
+    # display the image
+    # Create the colormap
+    depthmap = mcolors.LinearSegmentedColormap.from_list('depth_cmap', colors, N=256)
+    cmap = depthmap
+    cmap.set_bad(color='black')
+    # show image using matplotlib
+    range_min = distance_range[0]
+    range_max = distance_range[1]
+    show_image = np.ma.masked_where((image == 0), image)
+
+    
+    if rectangle is not None:
+        fig, ax = plt.subplots()
+        rect = mpatches.Rectangle((rectangle[0], rectangle[1]), rectangle[2], rectangle[3], fill=False, edgecolor='red', linewidth=1, facecolor='none')
+        ax.add_patch(rect)
+
+    # Ensure the directory exists
+    # os.makedirs(os.path.dirname(imageFileName), exist_ok=True)
+    plt.imshow(show_image,cmap=cmap ,vmin = range_min,vmax=range_max ,interpolation='nearest')
+    plt.colorbar()
+    # plt.savefig(imageFileName, format='png', dpi=600, transparent=True)
     plt.show()
 
 

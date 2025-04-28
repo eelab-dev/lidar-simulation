@@ -106,6 +106,20 @@ class detector:
             h5file.attrs["height"] = self.resolution_height       
 
 
+
+    def output_to_array(self):
+        photon_dtype = np.dtype([('distance', np.float32), ('collision_count', np.int32)])
+        # Create a 2D array (width x height) of vlen photon arrays
+        data = np.empty((self.resolution_width, self.resolution_height), dtype=object)
+
+        for i in range(self.resolution_width):
+            for j in range(self.resolution_height):
+                # photons = sorted(self.pixel_output_array[i][j], key=lambda x: x[0])
+                photons = self.pixel_output_array[i][j]
+                photon_array = np.array(photons, dtype=photon_dtype)
+                data[i, j] = photon_array
+        return data, self.resolution_width, self.resolution_height 
+
 def read_raw_data(file_name):
     """Reads raw photon data from an HDF5 file and returns a list of Ray objects."""
     photons = []
