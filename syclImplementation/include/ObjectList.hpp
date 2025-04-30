@@ -437,6 +437,8 @@ Intersection BVHArray::Intersect(const Ray& ray, const ObjectList* objects) cons
 
 Intersection BVHArray::getIntersection(const long index, const Ray &ray,
                                        const ObjectList *objects) const {
+
+ const float EPSILON = 1e-3f;  // Minimum valid ray distance
   if (!haveNode(index))
     return Intersection();
 
@@ -462,6 +464,10 @@ Intersection BVHArray::getIntersection(const long index, const Ray &ray,
       auto curObjectIndex = curNode->_objectIndex;
       Intersection tmp = objects->getIntersection(ray, curObjectIndex);
       if (tmp._hit && inter._distance > tmp._distance) {
+        inter = tmp;
+      }
+      // Only accept this intersection if it's far enough away to avoid self-intersection
+      if (tmp._hit && tmp._distance > EPSILON && tmp._distance < inter._distance) {
         inter = tmp;
       }
       continue;

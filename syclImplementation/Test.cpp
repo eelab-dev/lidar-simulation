@@ -62,7 +62,7 @@ int main(int argc, char* argv[]){
 
   Triangle_OBJ_result TriangleResult = loader.outputTrangleResult();
 
-  Vec3 cameraPosition(0.0f, 274.0f, 1280.0f); // Example camera position
+  Vec3 cameraPosition(20.0f, 274.0f, 1280.0f); // Example camera position
   Vec3 lookAt(0.0f, 274.0f, 0.0f); // Look at the center of the Cornell Box
   Vec3 up(0.0f, 1.0f, 0.0f); // Up direction
 
@@ -142,14 +142,14 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
   int i = index[0];
   int j = index[1];
   Vec3 pixelColor(0.0f, 0.0f, 0.0f);
-  RNG rng(seed + i + j * imageWidth);
+
 
   
   //sycl::atomic_ref<int, sycl::ext::oneapi::detail::memory_order::relaxed, sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space> atomic_counter(counter_acc[0]);
   
   for (int s = 0; s < ssp; ++s) 
   {
-    
+    RNG rng(seed + i + j * imageWidth + s *ssp);
     Vec3 rayDir = cameraAcc[0].getRayDirection(i, j, rng); 
     Ray ray(cameraAcc[0].getPosition(), rayDir); 
     auto tem = sceneAcc[0].doRendering(ray, rng);
@@ -157,9 +157,15 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
     if(tem._hit)
     {
       
-      auto v_counter = sycl::atomic_ref<int, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(counter_acc[0]);
-      int index = v_counter;
+      // auto v_counter = sycl::atomic_ref<int, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(counter_acc[0]);
+      // int index = v_counter;
+        auto v_counter = sycl::atomic_ref<
+            int,
+            sycl::ext::oneapi::detail::memory_order::relaxed,
+            sycl::ext::oneapi::detail::memory_scope::device,
+            sycl::access::address_space::global_space>(counter_acc[0]);
 
+      int index = v_counter.fetch_add(1);  
       auto v_positionX = sycl::atomic_ref<float, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(position_acc[index].x);
       auto v_positionY = sycl::atomic_ref<float, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(position_acc[index].y);
       auto v_positionZ = sycl::atomic_ref<float, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(position_acc[index].z);
@@ -171,7 +177,6 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
       auto v_distance = sycl::atomic_ref<float, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(travelDistance_acc[index]);
       auto v_collision = sycl::atomic_ref<int, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(collision_acc[index]);
 
-      v_counter++;
       Vec3 position = tem._position;
       Vec3 direction = tem._direction;
 

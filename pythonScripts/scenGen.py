@@ -49,7 +49,7 @@ if __name__ == "__main__":
     scene_obj.add_geometry(right_wall, geom_name="right_wall")
 
     # Light source (detector)
-    detector = scene_obj.create_box_with_material([box_width / 10, box_depth / 10, 0], [-30, box_height / 2, box_depth / 2 + 1000], "detector")
+    detector = scene_obj.create_box_with_material([box_width / 10, box_depth / 10, 0], [-10, box_height / 2, box_depth / 2 + 1000], "detector")
     scene_obj.add_geometry(detector, geom_name="detector")
 
     # Randomized block properties

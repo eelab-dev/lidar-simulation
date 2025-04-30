@@ -128,9 +128,12 @@ class syclScene
                     
                     return result;
                 }
-                
+                const float EPSILON = 1e-3f;
+                Vec3 newOrigin = intersection._position + intersection._normal * EPSILON;
                 Vec3 outDirction = intersectionMaterial->sample(currentRay.direction, intersection._normal,rng);
-                currentRay = Ray(intersection._position, outDirction); // Update the ray for the next iteration
+                currentRay = Ray(newOrigin, outDirction);
+                
+                //currentRay = Ray(intersection._position, outDirction); // Update the ray for the next iteration
             }
 
             return result;
