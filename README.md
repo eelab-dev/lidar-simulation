@@ -83,15 +83,24 @@ chmod +x build.sh
 ./build.sh  
 ```
 
-## Generate Data Set
+## Data Generation Flow
+The simulation is executed using a SYCL binary after it has been successfully built. It requires a .obj
+file to describe the surrounding environment, including a detector that captures returning photons. 
+The simulation generates a dataset for each captured photon, which includes the distance traveled, 
+the object it interacted with, and the photon's direction and position upon hitting the detector. 
+This information is later used for pixelization and histogram generation via corresponding Python
+scripts.The results are stored as intermediate outputs, enabling the histograms to be regenerated 
+when configuration or demand parameters change.
 
-### 1. Go Back to the Root Directory
+## Generate Data Set With Bash File
+
+### Go Back to the Root Directory
 Navigate back to the root directory of the project:
 ```bash
 cd ..
 ```
 
-### 2. Build Python Virtual Environment
+### Build Python Virtual Environment
 Create a Python virtual environment using `requirements.txt` or Conda:
 ```bash
 # Using virtualenv
@@ -104,14 +113,14 @@ conda create --name myenv --file requirements.txt
 conda activate myenv
 ```
 
-### 3. Execute `TestGenerator.sh`
+### Execute `TestGenerator.sh`
 Run the script to generate the dataset:
 ```bash
 chmod +x TestGenerator.sh  # Ensure the script is executable
 ./TestGenerator.sh  # Execute the script
 ```
 
-### 4. Customize Dataset Generation
+### Customize Dataset Generation
 In `TestGenerator.sh`, users can adjust:
 - The number of depth images to generate
 - The folder name and file name of the generated dataset
@@ -121,7 +130,6 @@ The generated dataset is located in the folder specified in `TestGenerator.sh`. 
 1. **Incoming Photo Information**
 2. **Histogram Information for Depth Image**
 3. **Depth Image Itself**
-
 
 
 ## Troubleshooting
