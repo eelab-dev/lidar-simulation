@@ -34,7 +34,7 @@ int main(int argc, char* argv[]){
   int imageWidth = 500;
   int imageHeight = 500;
   float fov = 40.0f; // Field of view in degrees
-  int ssp = 256*1000 ;
+  int ssp = 500*1000;
   unsigned int seed = 123;  
 
   // Parse flags
@@ -93,7 +93,7 @@ sycl::buffer<syclScene, 1> scenebuf(&scene, sycl::range<1>(1));
 
 // constexpr size_t vector_size = 1000;
 // std::vector<Vec3>
-constexpr size_t recordSize = 64*1200*900;
+constexpr size_t recordSize = 640*120*8000;
 
 
 

@@ -11,7 +11,7 @@ cd "$SCRIPT_DIR" || exit 1
 source .venv/bin/activate
 
 
-config="STM32Lidar/negative/stm32_negative_config.json"
+config="STM32Lidar/positive/stm32_positive_config.json"
 config_dir=$(dirname "$config")
 
 iteration=$(jq -r '.global_settings.iteration // empty' "$config")
@@ -113,6 +113,8 @@ do
 
             python3 pythonScripts/pixelation.py \
                 --input "${input_rawData_file_path}" \
+                --image_width 200\
+                --image_height 200\
                 --output "${output_pixelized_file_path}" || {
                     echo "Error running pixelize.py on ${input_rawData_file_path}"
                     exit 1

@@ -22,7 +22,7 @@ if __name__ == "__main__":
     output_image_name = output_image_name + '_depth.png'
 
     range_min = 2000
-    range_max = 3300
+    range_max = 4500
     args = parser.parse_args()
     input_bin_number = 35
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     myRange = [range_min,range_max]
     pixels, image_width, image_heigh = decode_file(input_file_path)
-    print(pixels[200][300])
+    # print(pixels[200][300])
     
     # image = form_image(pixels, image_heigh,image_width)
     image, illegal_photon, stamped_histogram, stamped_collosioin = form_histogram_image(pixels, image_heigh,image_width,bin_number=input_bin_number,range_distance=myRange)

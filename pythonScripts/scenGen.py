@@ -23,7 +23,7 @@ if __name__ == "__main__":
     }
 
     # Dimensions
-    box_width, box_height, box_depth = 552.8, 548.8, 559.2
+    box_width, box_height, box_depth = 500, 500, 500 
 
     # Create scene object
     scene_obj = scene(materials)
@@ -49,8 +49,17 @@ if __name__ == "__main__":
     scene_obj.add_geometry(right_wall, geom_name="right_wall")
 
     # Light source (detector)
-    detector = scene_obj.create_box_with_material([box_width / 10, box_depth / 10, 0], [-10, box_height / 2, box_depth / 2 + 1000], "detector")
+    detector = scene_obj.create_box_with_material([box_width / 25, box_depth / 25, 0], [-10, box_height / 2, box_depth / 2 + 1000], "detector")
     scene_obj.add_geometry(detector, geom_name="detector")
+
+    # ground plate
+    ground = scene_obj.create_box_with_material([box_width*5, 1, box_depth*5],[0, -0.5 - 1.0, 0], "white")
+    scene_obj.add_geometry(ground, geom_name="ground")
+
+    # wall plate
+    wall = scene_obj.create_box_with_material([box_width*5, box_height*5,1], [0,box_height*5/2 -0.5, -box_depth/2-300], "white")
+    scene_obj.add_geometry(wall, geom_name="wall")
+
 
     # Randomized block properties
     short_block_width, short_block_depth, short_block_height = 160, 165, 160
