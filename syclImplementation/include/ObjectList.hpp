@@ -373,72 +373,13 @@ Intersection BVHArray::Intersect(const Ray& ray, const ObjectList* objects) cons
     return inter;
 }
 
-// Intersection BVHArray::getIntersection(const long index, const Ray& ray, const ObjectList* objects) const
-// {
-//     if (!haveNode(index)) return Intersection();
 
-//     Intersection inter;
-//     inter._hit = false;
-//     inter._distance = INFINITY;
-
-
-//     BVHNode* stack[64] = {nullptr};
-//     BVHNode* curNode = &(_array[index]);
-//     int stackCount = 0;
-
-//     while((stackCount >= 0 && stackCount < 64) || curNode!=nullptr)
-//     {
-//         while(curNode != nullptr)
-//         {
-//             if(!testIntersection(curNode, ray))
-//             {
-//                 curNode = nullptr;
-//                 break;
-//             }
-//             if (curNode->_objectIndex > 0)
-//             {
-//                 auto curObjectIndex = curNode->_objectIndex;
-//                 Intersection tmp = objects->getIntersection(ray, curObjectIndex);
-//                 if (tmp._hit && inter._distance > tmp._distance)
-//                 {
-//                     inter = tmp;
-//                 }
-//                 curNode = nullptr;
-//                 break;
-//             }
-//             long curRight = curNode->_rightIndex;
-//             if(haveNode(curRight))
-//             {
-//                 stackCount++;
-//                 stack[stackCount] = &_array[curRight];
-//             }
-//             long curLeft = curNode->_leftIndex;
-//             if (haveNode(curLeft))
-//             {
-//                 curNode = &_array[curLeft];
-//             }
-//             else
-//             {
-//                 curNode = nullptr;
-//             }
-//         }
-
-//         if(stackCount >= 0 && stackCount < 64)
-//         {
-//             curNode = stack[stackCount];
-//             stackCount--;
-//         }
-//     }
-
-//     return inter;
- 
-// }
 
 
 Intersection BVHArray::getIntersection(const long index, const Ray &ray,
                                        const ObjectList *objects) const {
 
- const float EPSILON = 1e-3f;  // Minimum valid ray distance
+ const float EPSILON = 1e-4f;  // Minimum valid ray distance
   if (!haveNode(index))
     return Intersection();
 

@@ -36,6 +36,7 @@ int main(int argc, char* argv[]){
   float fov = 40.0f; // Field of view in degrees
   int ssp = 500*1000;
   unsigned int seed = 123;  
+  float detectorDistance = 1000;
 
   // Parse flags
   std::unordered_map<std::string, std::string> args = parseFlags(argc, argv);
@@ -48,7 +49,7 @@ int main(int argc, char* argv[]){
   if (args.count("--fov")) fov = std::stof(args["--fov"]);
   if (args.count("--ssp")) ssp = std::stoi(args["--ssp"]);
   if (args.count("--seed")) seed = std::stoi(args["--seed"]);
-
+  if (args.count("--detectorDistance")) detectorDistance = std::stof(args["--detectorDistance"]);  
 
   // Extract directory and file name
   size_t pos = inputFile.find_last_of('/');
@@ -62,7 +63,7 @@ int main(int argc, char* argv[]){
 
   Triangle_OBJ_result TriangleResult = loader.outputTrangleResult();
 
-  Vec3 cameraPosition(20.0f, 274.0f, 1280.0f); // Example camera position
+  Vec3 cameraPosition(20.0f, 274.0f, 250 + detectorDistance + 10); // Example camera position
   Vec3 lookAt(0.0f, 274.0f, 0.0f); // Look at the center of the Cornell Box
   Vec3 up(0.0f, 1.0f, 0.0f); // Up direction
 
@@ -112,7 +113,7 @@ sycl::buffer<int, 1> collision_buf(collisionRecord.data(), sycl::range<1>(record
 sycl::buffer<float,1> travelDistance_buf(travelDistanceRecord.data(), sycl::range<1>(recordSize));
 
 
-std::cout << "Running on " << myQueue.get_device().get_info<sycl::info::device::name>() << std::endl;
+// std::cout << "Running on " << myQueue.get_device().get_info<sycl::info::device::name>() << std::endl;
 
 std::vector<Vec3> image(imageWidth * imageHeight);
 sycl::buffer<Vec3, 1> imagebuf(image.data(), sycl::range<1>(image.size()));

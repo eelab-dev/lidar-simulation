@@ -8,7 +8,7 @@
 #include <string>
 #include <cmath>
 #include <iostream>
-#include "BVHArray.hpp"
+// #include "BVHArray.hpp"
 #include "sycl_obj_loader.hpp"
 
 
@@ -128,12 +128,20 @@ class syclScene
                     
                     return result;
                 }
-                const float EPSILON = 1e-3f;
-                Vec3 newOrigin = intersection._position + intersection._normal * EPSILON;
-                Vec3 outDirction = intersectionMaterial->sample(currentRay.direction, intersection._normal,rng);
-                currentRay = Ray(newOrigin, outDirction);
-                
-                //currentRay = Ray(intersection._position, outDirction); // Update the ray for the next iteration
+     
+
+                const float EPSILON = 1e-4f;
+                Vec3 normal = intersection._normal.normalized();
+                Vec3 offset = normal * EPSILON;
+
+                // Avoid biasing into the surface for transmission rays
+                if (dotProduct(currentRay.direction, normal) > 0.0f) {
+                    offset = -offset;
+                }
+
+                Vec3 safeOrigin = intersection._position + offset;
+                Vec3 newDirection = intersectionMaterial->sample(currentRay.direction, normal, rng);
+                currentRay = Ray(safeOrigin, newDirection);           
             }
 
             return result;

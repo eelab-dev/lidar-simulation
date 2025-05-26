@@ -15,7 +15,9 @@ config="STM32Lidar/positive/stm32_positive_config.json"
 config_dir=$(dirname "$config")
 
 iteration=$(jq -r '.global_settings.iteration // empty' "$config")
-global_prefix=$(jq -r '.global_settings.global_prefix // empty' "$config") 
+global_prefix=$(jq -r '.global_settings.global_prefix // empty' "$config")
+detector_distance=$(jq -r '.global_settings.detector_distance// empty' "$config") 
+inputFov=$(jq -r '.global_settings.fov// empty' "$config")
 
 if [ -z "$iteration" ]; then
     echo "'iteration' not found."
@@ -27,6 +29,8 @@ if [ -z "$global_prefix" ]; then
     exit 1;
 fi
 
+
+
 for ((i=1;i<=iteration;i++))
 do
 
@@ -36,8 +40,18 @@ do
         mkdir -p "$model_dir"
         model_file="${global_prefix}_obj_${i}.obj"
         model_file_path="${model_dir}/${model_file}"
+
+        # ✅ Initialize simulation_flag with a leading space
+        simulation_flag=""
+
+        if [ -n "$detector_distance" ]; then
+            simulation_flag+=" --detectorDistance ${detector_distance}"
+        fi
+
+        echo $simulation_flag
         python3 pythonScripts/scenGen.py \
-        --output_file "${model_file_path}"|| { 
+        --output_file "${model_file_path}" \
+        $simulation_flag || { 
         echo "Error running scenGen.py";
         exit 1; }
     fi
@@ -82,15 +96,33 @@ do
             rawData_dir="${config_dir}/${rawData_dir}"
             mkdir -p "$rawData_dir"     
 
-            inputFov=$(jq -r '.simulation_generation.fov // 38' "$config")  # default to 38 if missing
             rawData_file="${global_prefix}_rawData_${i}.h5"
             rawData_file_path="${rawData_dir}/${rawData_file}"
+
+            # ✅ Initialize simulation_flag with a leading space
+            simulation_flag=""
+
+            # ✅ Append flags conditionally
+            
+            if jq -e '.simulation_generation.ssp' "$config" > /dev/null 2>&1; then
+                ssp=$(jq -r '.simulation_generation.ssp' "$config")
+                simulation_flag+=" --ssp ${ssp}"
+            fi
+
+            if [ -n "$detector_distance" ]; then
+                simulation_flag+=" --detectorDistance ${detector_distance}"
+            fi
+
+            if [ -n "$inputFov" ]; then
+                simulation_flag+=" --fov ${inputFov}"
+            fi
+            echo $simulation_flag
 
             ./syclImplementation/build/LiDARSimulation \
             --model "${input_model_file_path}" \
             --output "${rawData_file_path}" \
-            --fov "${inputFov}"\
-            --seed $i|| { 
+            --seed $i \
+            $simulation_flag || { 
             echo "Error running HELLOEMBREE"; 
             exit 1;} 
         else 
@@ -111,11 +143,29 @@ do
             output_pixelized_file="${global_prefix}_pixelized_${i}.h5"
             output_pixelized_file_path="${output_pixelized_dir}/${output_pixelized_file}"
 
+            # ✅ Initialize simulation_flag with a leading space
+            simulation_flag=""
+
+            if [ -n "$inputFov" ]; then
+                simulation_flag+=" --fov ${inputFov}"
+            fi
+
+            if jq -e '.pixelization_process.height' "$config" > /dev/null 2>&1; then
+                height=$(jq -r '.pixelization_process.height' "$config")
+                simulation_flag+=" --image_height ${height}"
+            fi
+            
+            if jq -e '.pixelization_process.width' "$config" > /dev/null 2>&1; then
+                width=$(jq -r '.pixelization_process.width' "$config")
+                simulation_flag+=" --image_width ${width}"
+            fi
+
+            echo $simulation_flag
+
             python3 pythonScripts/pixelation.py \
                 --input "${input_rawData_file_path}" \
-                --image_width 200\
-                --image_height 200\
-                --output "${output_pixelized_file_path}" || {
+                --output "${output_pixelized_file_path}"\
+                $simulation_flag || {
                     echo "Error running pixelize.py on ${input_rawData_file_path}"
                     exit 1
                 }
@@ -139,16 +189,42 @@ do
             mkdir -p "$depthImage_dir"
             mkdir -p "$histogram_dir"
 
-            depthImage_file="${global_prefix}_depth${i}.png"
-            depthImage_file_path="${depthImage_dir}/${depthImage_file}"
+            # ✅ Initialize simulation_flag with a leading space
+            simulation_flag=""
 
-            histogram_file="${global_prefix}_histogram_${i}.h5"
-            histogram_file_path="${histogram_dir}/${histogram_file}"
 
-            python3 pythonScripts/fromImage.py \
-                --input_file "${pixelized_file_path}" \
-                --output_image "${depthImage_file_path}" \
-                --output_file "${histogram_file_path}" || {
+            # Append required input
+            simulation_flag+=" --input_file ${pixelized_file_path}"
+
+            if jq -e '.imageFormation_process.output_histogram_dir' "$config" > /dev/null 2>&1; then
+                histogram_file="${global_prefix}_histogram_${i}.h5"
+                histogram_file_path="${histogram_dir}/${histogram_file}"
+                simulation_flag+=" --output_file ${histogram_file_path}"
+            fi
+            
+            if jq -e '.imageFormation_process.output_depthImage_dir' "$config" > /dev/null 2>&1; then
+                depthImage_file="${global_prefix}_depth${i}.png"
+                depthImage_file_path="${depthImage_dir}/${depthImage_file}"
+                simulation_flag+=" --output_image ${depthImage_file_path}"
+            fi
+
+            if jq -e '.imageFormation_process.bin_number' "$config" > /dev/null 2>&1; then
+                bin_number=$(jq -r '.imageFormation_process.bin_number' "$config")
+                simulation_flag+=" --bin_number ${bin_number}"
+            fi
+
+            if jq -e '.imageFormation_process.min_range' "$config" > /dev/null 2>&1; then
+                min_range=$(jq -r '.imageFormation_process.min_range' "$config")
+                simulation_flag+=" --min_range ${min_range}"
+            fi
+
+            if jq -e '.imageFormation_process.bin_width' "$config" > /dev/null 2>&1; then
+                bin_width=$(jq -r '.imageFormation_process.bin_width' "$config")
+                simulation_flag+=" --bin_width ${bin_width}"
+            fi
+
+            echo $simulation_flag
+            python3 pythonScripts/fromImage.py $simulation_flag || {
                     echo "Error running fromImage.py on ${pixelized_file_path}"
                     exit 1
                 }

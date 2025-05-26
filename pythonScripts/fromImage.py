@@ -13,7 +13,7 @@ if __name__ == "__main__":
     parser.add_argument("--output_file", help="Optional output h5 file name (e.g., depth_image.png)")
     parser.add_argument("--bin_number", type=int, help="Number of histogram bins")
     parser.add_argument("--min_range", type=float, help="Minimum range value for histogram")
-    parser.add_argument("--max_range", type=float, help="Maximum range value for histogram")
+    parser.add_argument("--bin_width", type=float, help="The width of each bin")
 
     input_file_path = './positiveResult/histogram/test1_len.txt'
     # extract the name of the file generated a new file with the same name
@@ -21,8 +21,8 @@ if __name__ == "__main__":
     output_image_name = output_image_name.split('.')[0]
     output_image_name = output_image_name + '_depth.png'
 
-    range_min = 2000
-    range_max = 4500
+    range_min = 500
+    bin_width = 80 
     args = parser.parse_args()
     input_bin_number = 35
 
@@ -36,12 +36,13 @@ if __name__ == "__main__":
     if args.min_range:
         range_min = args.min_range
 
-    if args.max_range:
-        range_max = args.max_range
+    if args.bin_width:
+        bin_width = args.bin_width
 
     if args.output_image:
         output_image_name = args.output_image
 
+    range_max = range_min + input_bin_number * bin_width
     myRange = [range_min,range_max]
     pixels, image_width, image_heigh = decode_file(input_file_path)
     # print(pixels[200][300])

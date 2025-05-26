@@ -87,7 +87,7 @@ def form_average_image(pixels, image_width, image_heigh):
     return image
 
 
-def form_histogram_image(pixels, image_width, image_height,bin_number = 25, range_distance = [2000,3500]):
+def form_histogram_image(pixels, image_width, image_height,bin_number = 25, range_distance = [1000,2500]):
     illegal_photon = np.empty((image_height, image_width), dtype=object)
     for i, j in np.ndindex(image_height, image_width):
         illegal_photon[i, j] = []
@@ -128,17 +128,13 @@ def save_image(image, rectangle=None,imageFileName = "./",distance_range=[2100,3
     range_max = distance_range[1]
     show_image = np.ma.masked_where((image == 0), image)
 
-    
-    if rectangle is not None:
-        fig, ax = plt.subplots()
-        rect = mpatches.Rectangle((rectangle[0], rectangle[1]), rectangle[2], rectangle[3], fill=False, edgecolor='red', linewidth=1, facecolor='none')
-        ax.add_patch(rect)
 
     # Ensure the directory exists
     os.makedirs(os.path.dirname(imageFileName), exist_ok=True)
     plt.imshow(show_image,cmap=cmap ,vmin = range_min,vmax=range_max ,interpolation='nearest')
     plt.colorbar()
-    plt.savefig(imageFileName, format='png', dpi=600, transparent=True)
+    plt.savefig(imageFileName, format='png', dpi=600, transparent=False)
+  
     # plt.show()
 
 
@@ -153,15 +149,10 @@ def display_image(image, rectangle=None,distance_range = [2100,3000]):
     range_max = distance_range[1]
     show_image = np.ma.masked_where((image == 0), image)
 
-    
-    if rectangle is not None:
-        fig, ax = plt.subplots()
-        rect = mpatches.Rectangle((rectangle[0], rectangle[1]), rectangle[2], rectangle[3], fill=False, edgecolor='red', linewidth=1, facecolor='none')
-        ax.add_patch(rect)
 
     # Ensure the directory exists
     # os.makedirs(os.path.dirname(imageFileName), exist_ok=True)
-    plt.imshow(show_image,cmap=cmap ,vmin = range_min,vmax=range_max ,interpolation='nearest')
+    plt.imshow(show_image,cmap=cmap,vmin = range_min,vmax=range_max ,interpolation='nearest')
     plt.colorbar()
     # plt.savefig(imageFileName, format='png', dpi=600, transparent=True)
     plt.show()

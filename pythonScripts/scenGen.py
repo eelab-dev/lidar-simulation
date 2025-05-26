@@ -7,11 +7,15 @@ import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Export a Cornell Box scene to OBJ format.")
     parser.add_argument("-o", "--output_file", type=str, default="cornell_box.obj", help="Output OBJ file path")
+    parser.add_argument("--detectorDistance", type=float, default = 1000 , help = "distance from detector to the ")
 
     output_file = "cornell_box.obj"
+    detector_distance = 1000
     args = parser.parse_args()
     if args.output_file:
         output_file = args.output_file
+    if args.detectorDistance:
+        detector_distance = args.detectorDistance
 
     # Material properties
     materials = {
@@ -48,8 +52,8 @@ if __name__ == "__main__":
     right_wall = scene_obj.create_box_with_material([1, box_height, box_depth], [box_width / 2, box_height / 2 - 0.5, 0], "green")
     scene_obj.add_geometry(right_wall, geom_name="right_wall")
 
-    # Light source (detector)
-    detector = scene_obj.create_box_with_material([box_width / 25, box_depth / 25, 0], [-10, box_height / 2, box_depth / 2 + 1000], "detector")
+    # detector
+    detector = scene_obj.create_box_with_material([box_width / 25, box_depth / 25, 0], [-10, box_height / 2, box_depth / 2 + detector_distance], "detector")
     scene_obj.add_geometry(detector, geom_name="detector")
 
     # ground plate
