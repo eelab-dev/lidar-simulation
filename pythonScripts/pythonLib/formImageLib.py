@@ -107,7 +107,7 @@ def form_histogram_image(pixels, image_width, image_height,bin_number = 25, rang
                 if range_distance[0] > distance or range_distance[1] < distance:
                     illegal_photon[i][j].append((distance,collosion))
                 else:
-                    bin_index = min(int((distance - range_min) / bin_number), bin_number - 1)
+                    bin_index = min(int((distance - range_min) / bin_width), bin_number - 1)
                     stamped_histogram[i, j, bin_index] += 1
                     stamped_collosion[i,j, bin_index] += collosion
             for k in range(bin_number):
