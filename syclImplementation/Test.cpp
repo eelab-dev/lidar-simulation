@@ -18,20 +18,10 @@
 #include <filesystem>
 
 
-
-
-
-
-int compoentToint(myComputeType x){
-return (int)(255*(std::pow(clamp(x, 0.0, 1.0), 1/2.2)));
-//return (int)(x);  
-}
-
-
 int main(int argc, char* argv[]){
   
   std::string inputFile = "./Model/cornell_box.obj";
-  std::string outputFile = "./outputtest.txt";
+  std::string outputFile = "./outputtest.h5";
   int inputWidth = 500;
   int inputHeight = 500;
   float fov = 40.0f; // Field of view in degrees
@@ -61,7 +51,6 @@ int main(int argc, char* argv[]){
 
   OBJ_Loader loader;
   loader.addTriangleObjectFile(ModelDir, ModelName);
-
   Triangle_OBJ_result TriangleResult = loader.outputTrangleResult();
 
   Vec3 cameraPosition(20.0f, 274.0f, 250 + detectorDistance + 10); // Example camera position
@@ -75,13 +64,8 @@ int main(int argc, char* argv[]){
 
  
 
-
-
-
-
 std::cout << "hello from GPGPU\n" <<std::endl;
 sycl::queue myQueue(sycl::gpu_selector_v);
-//auto sceneObject = loader.outputSyclObj(myQueue);
 
 ObjectListContent sceneObjListContent(myQueue);
 sceneObjListContent.addObject(TriangleResult.Triangles, TriangleResult.MaterialsInfoList, TriangleResult.materialIDs);
@@ -94,10 +78,7 @@ syclScene scene(sceneObject);
 scene.commit();
 sycl::buffer<syclScene, 1> scenebuf(&scene, sycl::range<1>(1));
 
-
 constexpr size_t recordSize = 640*120*8000;
-
-
 
 std::vector<Vec3> directionRecord(recordSize);
 std::vector<Vec3> positionRecord(recordSize);
@@ -107,14 +88,12 @@ int recordNum = 0;
 
 
 
+std::cout << "Running on " << myQueue.get_device().get_info<sycl::info::device::name>() << std::endl;
 sycl::buffer<Vec3, 1> direction_buf(directionRecord.data(), sycl::range<1>(recordSize));
 sycl::buffer<Vec3, 1> position_buf(positionRecord.data(), sycl::range<1>(recordSize));
 sycl::buffer<int, 1> counter_buf(&recordNum, sycl::range<1>(1));
 sycl::buffer<int, 1> collision_buf(collisionRecord.data(), sycl::range<1>(recordSize));
 sycl::buffer<float,1> travelDistance_buf(travelDistanceRecord.data(), sycl::range<1>(recordSize));
-
-
-// std::cout << "Running on " << myQueue.get_device().get_info<sycl::info::device::name>() << std::endl;
 
 std::vector<Vec3> image(imageWidth * imageHeight);
 sycl::buffer<Vec3, 1> imagebuf(image.data(), sycl::range<1>(image.size()));
@@ -144,17 +123,12 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
   int j = index[1];
   Vec3 pixelColor(0.0f, 0.0f, 0.0f);
 
-
-  
-  //sycl::atomic_ref<int, sycl::ext::oneapi::detail::memory_order::relaxed, sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space> atomic_counter(counter_acc[0]);
-  
   for (int s = 0; s < ssp; ++s) 
   {
     RNG rng(seed + i + j * imageWidth + s *ssp);
     Vec3 rayDir = cameraAcc[0].getRayDirection(i, j, rng); 
     Ray ray(cameraAcc[0].getPosition(), rayDir); 
     auto tem = sceneAcc[0].doRendering(ray, rng);
-    //pixelColor = pixelColor + tem;
     if(tem._hit)
     {
       
@@ -167,30 +141,10 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
             sycl::access::address_space::global_space>(counter_acc[0]);
 
       int index = v_counter.fetch_add(1);  
-      auto v_positionX = sycl::atomic_ref<float, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(position_acc[index].x);
-      auto v_positionY = sycl::atomic_ref<float, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(position_acc[index].y);
-      auto v_positionZ = sycl::atomic_ref<float, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(position_acc[index].z);
-
-      auto v_directionX = sycl::atomic_ref<float, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(direction_acc[index].x);
-      auto v_directionY = sycl::atomic_ref<float, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(direction_acc[index].y);
-      auto v_directionZ = sycl::atomic_ref<float, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(direction_acc[index].z);
-
-      auto v_distance = sycl::atomic_ref<float, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(travelDistance_acc[index]);
-      auto v_collision = sycl::atomic_ref<int, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(collision_acc[index]);
-
-      Vec3 position = tem._position;
-      Vec3 direction = tem._direction;
-
-      v_positionX = position.x;
-      v_positionY = position.y;
-      v_positionZ = position.z;
-
-      v_directionX = direction.x;
-      v_directionY = direction.y;
-      v_directionZ = direction.z;
-
-      v_collision = tem._collisionCount;  
-      v_distance = tem._travelDistance;
+      position_acc[index] = tem._position;
+      direction_acc[index] = tem._direction;
+      collision_acc[index] = tem._collisionCount;
+      travelDistance_acc[index] = tem._travelDistance;
     }
   }
 

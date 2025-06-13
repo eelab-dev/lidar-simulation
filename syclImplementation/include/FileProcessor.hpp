@@ -30,8 +30,8 @@ std::unordered_map<std::string, std::string> parseFlags(int argc, char* argv[]) 
 struct CollisionRecord {
     int collisionCount;
     float distance;
-    float collisionLocation[3];
-    float collisionDirection[3];
+    Vec3 collisionLocation;
+    Vec3 collisionDirection;
 };
 
 
@@ -119,12 +119,12 @@ void HDF5Writer::writeRecord(int collisionCount, float distance, Vec3 collisionL
     CollisionRecord record;
     record.collisionCount = collisionCount;
     record.distance = distance;
-    record.collisionLocation[0] = collisionLocation.x;
-    record.collisionLocation[1] = collisionLocation.y;
-    record.collisionLocation[2] = collisionLocation.z;
-    record.collisionDirection[0] = collisionDirection.x;
-    record.collisionDirection[1] = collisionDirection.y;
-    record.collisionDirection[2] = collisionDirection.z;
+    record.collisionLocation.x = collisionLocation.x;
+    record.collisionLocation.y = collisionLocation.y;
+    record.collisionLocation.z = collisionLocation.z;
+    record.collisionDirection.x = collisionDirection.x;
+    record.collisionDirection.y = collisionDirection.y;
+    record.collisionDirection.z = collisionDirection.z;
 
     // Extend dataset to accommodate new record
     hsize_t new_size[1] = {current_index + 1};
@@ -225,12 +225,12 @@ std::vector<CollisionRecord> filterCollisionRecordsSYCL(
                     CollisionRecord rec;
                     rec.collisionCount = c[i];
                     rec.distance = d[i];
-                    rec.collisionLocation[0] = loc[i].x;
-                    rec.collisionLocation[1] = loc[i].y;
-                    rec.collisionLocation[2] = loc[i].z;
-                    rec.collisionDirection[0] = dir[i].x;
-                    rec.collisionDirection[1] = dir[i].y;
-                    rec.collisionDirection[2] = dir[i].z;
+                    rec.collisionLocation.x = loc[i].x;
+                    rec.collisionLocation.y = loc[i].y;
+                    rec.collisionLocation.z = loc[i].z;
+                    rec.collisionDirection.x = dir[i].x;
+                    rec.collisionDirection.y = dir[i].y;
+                    rec.collisionDirection.z = dir[i].z;
                     out[idx] = rec;
                 }
             });
@@ -243,6 +243,7 @@ std::vector<CollisionRecord> filterCollisionRecordsSYCL(
     if (recordNum > 0) {
         validCount = positions[recordNum - 1] + mask[recordNum - 1];
     }
+    std::cout << "invalid record: " << recordNum - validCount << std::endl;
     filtered.resize(validCount);
 
     return filtered;

@@ -20,7 +20,6 @@ inline myComputeType clamp(myComputeType val, myComputeType low, myComputeType h
     else return val;
 }
 
-
 myComputeType get_random_float(RNG &rng)
 {
     oneapi::dpl::uniform_real_distribution<myComputeType> distribution(0.f, 1.f);
