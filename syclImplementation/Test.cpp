@@ -47,8 +47,6 @@ int main(int argc, char* argv[]){
   std::string ModelDir = inputFile.substr(0, pos);
   std::string ModelName = inputFile.substr(pos);
 
-
-
   OBJ_Loader loader;
   loader.addTriangleObjectFile(ModelDir, ModelName);
   Triangle_OBJ_result TriangleResult = loader.outputTrangleResult();
@@ -72,28 +70,22 @@ sceneObjListContent.addObject(TriangleResult.Triangles, TriangleResult.Materials
 ObjectList sceneObject;
 sceneObject.setObjects(sceneObjListContent);
 
-
-
 syclScene scene(sceneObject);
 scene.commit();
 sycl::buffer<syclScene, 1> scenebuf(&scene, sycl::range<1>(1));
 
 constexpr size_t recordSize = 640*120*8000;
 
-std::vector<Vec3> directionRecord(recordSize);
-std::vector<Vec3> positionRecord(recordSize);
-std::vector<int> collisionRecord(recordSize);
-std::vector<float> travelDistanceRecord(recordSize);
+
+std::vector<CollisionRecord> collision(recordSize);
 int recordNum = 0;
 
 
 
 std::cout << "Running on " << myQueue.get_device().get_info<sycl::info::device::name>() << std::endl;
-sycl::buffer<Vec3, 1> direction_buf(directionRecord.data(), sycl::range<1>(recordSize));
-sycl::buffer<Vec3, 1> position_buf(positionRecord.data(), sycl::range<1>(recordSize));
+
+sycl::buffer<CollisionRecord> collision_buf(collision);
 sycl::buffer<int, 1> counter_buf(&recordNum, sycl::range<1>(1));
-sycl::buffer<int, 1> collision_buf(collisionRecord.data(), sycl::range<1>(recordSize));
-sycl::buffer<float,1> travelDistance_buf(travelDistanceRecord.data(), sycl::range<1>(recordSize));
 
 std::vector<Vec3> image(imageWidth * imageHeight);
 sycl::buffer<Vec3, 1> imagebuf(image.data(), sycl::range<1>(image.size()));
@@ -105,17 +97,12 @@ auto startTime = std::chrono::high_resolution_clock::now();
 std::cout << "submitting kernel\n";
 
 myQueue.submit([&](sycl::handler& cgh) {
-  //sycl::stream out(imageWidth, imageHeight, cgh);  
 sycl::stream out(1024, 256, cgh);
 auto sceneAcc = scenebuf.template get_access<sycl::access::mode::read>(cgh);
 auto cameraAcc = camerabuf.template get_access<sycl::access::mode::read>(cgh);
 
 sycl::accessor counter_acc(counter_buf, cgh, sycl::write_only);
-sycl::accessor direction_acc(direction_buf, cgh, sycl::write_only);
-sycl::accessor position_acc(position_buf, cgh, sycl::write_only);
 sycl::accessor collision_acc(collision_buf, cgh, sycl::write_only);
-sycl::accessor travelDistance_acc(travelDistance_buf, cgh, sycl::write_only);
-
 
 cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index) 
 {
@@ -140,43 +127,34 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
             sycl::ext::oneapi::detail::memory_scope::device,
             sycl::access::address_space::global_space>(counter_acc[0]);
 
-      int index = v_counter.fetch_add(1);  
-      position_acc[index] = tem._position;
-      direction_acc[index] = tem._direction;
-      collision_acc[index] = tem._collisionCount;
-      travelDistance_acc[index] = tem._travelDistance;
+      int idx = v_counter.fetch_add(1);  
+      collision_acc[idx].collisionCount = tem._collisionCount;
+      collision_acc[idx].distance = tem._travelDistance;
+      collision_acc[idx].collisionLocation = tem._position;
+      collision_acc[idx].collisionDirection = tem._direction;
     }
   }
-
-  //imageAcc[i + j * imageWidth] = pixelColor/ssp;
 
   });
 });
 myQueue.wait_and_throw();
 myQueue.update_host(imagebuf.get_access());
 myQueue.update_host(counter_buf.get_access());
-myQueue.update_host(direction_buf.get_access());
-myQueue.update_host(position_buf.get_access());
 myQueue.update_host(collision_buf.get_access());
-myQueue.update_host(travelDistance_buf.get_access());
 std::cout << "finished rendering" << std::endl;
 
 
 HDF5Writer writer(outputFile, fov, imageHeight, imageWidth);
 
-if (collisionRecord.size() > recordNum) {
-    collisionRecord.resize(recordNum);
-    travelDistanceRecord.resize(recordNum);
-    positionRecord.resize(recordNum);
-    directionRecord.resize(recordNum);
-} 
+
+if (collision.size() > recordNum) {
+    collision.resize(recordNum);
+}
 
 sycl::queue HDF5WriterQueue(sycl::cpu_selector_v);
 HDF5WriterQueue.wait_and_throw();
-auto filterRecord = filterCollisionRecordsSYCL(collisionRecord,travelDistanceRecord,positionRecord,directionRecord,HDF5WriterQueue);
-std::cout << "finished filtering"<< std::endl;
+auto filterRecord = filterCollisionRecordsSYCL(collision,HDF5WriterQueue);
 writer.writeBatch(filterRecord);
-
 writer.finalizeFile();
 
 

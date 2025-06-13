@@ -171,67 +171,49 @@ void HDF5Writer::finalizeFile() {
 
 
 std::vector<CollisionRecord> filterCollisionRecordsSYCL(
-    const std::vector<int>& collisionCount,
-    const std::vector<float>& distance,
-    const std::vector<Vec3>& collisionLocation,
-    const std::vector<Vec3>& collisionDirection,
+    const std::vector<CollisionRecord>& inputRecords,
     sycl::queue& myQueue
 )
 {
-    size_t recordNum = collisionCount.size();
+    size_t recordNum = inputRecords.size();
     std::vector<int> mask(recordNum);
     std::vector<int> positions(recordNum);
     std::vector<CollisionRecord> filtered(recordNum); // max possible size
 
     // Step 1: Build mask where collisionCount > 0
     {
-        sycl::buffer<int> count_buf(collisionCount);
+        sycl::buffer<CollisionRecord> in_buf(inputRecords);
         sycl::buffer<int> mask_buf(mask);
 
         myQueue.submit([&](sycl::handler& h) {
-            auto count = count_buf.get_access<sycl::access::mode::read>(h);
+            auto in = in_buf.get_access<sycl::access::mode::read>(h);
             auto m = mask_buf.get_access<sycl::access::mode::write>(h);
-
             h.parallel_for(recordNum, [=](sycl::id<1> i) {
-                m[i] = count[i] > 0 ? 1 : 0;
+                m[i] = in[i].collisionCount > 0 ? 1 : 0;
             });
         });
     }
 
+    // Step 2: Exclusive scan on CPU
     host_exclusive_scan(mask, positions);
 
-    // Step 3: compact valid records into `filtered`
+    // Step 3: Compact valid records into `filtered`
     {
+        sycl::buffer<CollisionRecord> in_buf(inputRecords);
         sycl::buffer<int> mask_buf(mask);
         sycl::buffer<int> pos_buf(positions);
-        sycl::buffer<int> count_buf(collisionCount);
-        sycl::buffer<float> dist_buf(distance);
-        sycl::buffer<Vec3> loc_buf(collisionLocation);
-        sycl::buffer<Vec3> dir_buf(collisionDirection);
         sycl::buffer<CollisionRecord> out_buf(filtered);
 
         myQueue.submit([&](sycl::handler& h) {
+            auto in = in_buf.get_access<sycl::access::mode::read>(h);
             auto m = mask_buf.get_access<sycl::access::mode::read>(h);
             auto p = pos_buf.get_access<sycl::access::mode::read>(h);
-            auto c = count_buf.get_access<sycl::access::mode::read>(h);
-            auto d = dist_buf.get_access<sycl::access::mode::read>(h);
-            auto loc = loc_buf.get_access<sycl::access::mode::read>(h);
-            auto dir = dir_buf.get_access<sycl::access::mode::read>(h);
             auto out = out_buf.get_access<sycl::access::mode::write>(h);
 
             h.parallel_for(recordNum, [=](sycl::id<1> i) {
                 if (m[i]) {
                     int idx = p[i];
-                    CollisionRecord rec;
-                    rec.collisionCount = c[i];
-                    rec.distance = d[i];
-                    rec.collisionLocation.x = loc[i].x;
-                    rec.collisionLocation.y = loc[i].y;
-                    rec.collisionLocation.z = loc[i].z;
-                    rec.collisionDirection.x = dir[i].x;
-                    rec.collisionDirection.y = dir[i].y;
-                    rec.collisionDirection.z = dir[i].z;
-                    out[idx] = rec;
+                    out[idx] = in[i];
                 }
             });
         });
@@ -243,12 +225,11 @@ std::vector<CollisionRecord> filterCollisionRecordsSYCL(
     if (recordNum > 0) {
         validCount = positions[recordNum - 1] + mask[recordNum - 1];
     }
-    std::cout << "invalid record: " << recordNum - validCount << std::endl;
+    std::cout << "Invalid records: " << recordNum - validCount << std::endl;
     filtered.resize(validCount);
 
     return filtered;
 }
-
 
 
 
