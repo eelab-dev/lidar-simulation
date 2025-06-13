@@ -8,6 +8,7 @@
 #include "Camera.hpp" 
 #include <fstream>
 #include "common.hpp"
+#include "Utility.hpp"
 #include "FileProcessor.hpp"
 
 #include <chrono>
@@ -31,8 +32,8 @@ int main(int argc, char* argv[]){
   
   std::string inputFile = "./Model/cornell_box.obj";
   std::string outputFile = "./outputtest.txt";
-  int imageWidth = 500;
-  int imageHeight = 500;
+  int inputWidth = 500;
+  int inputHeight = 500;
   float fov = 40.0f; // Field of view in degrees
   int ssp = 500*1000;
   unsigned int seed = 123;  
@@ -44,8 +45,8 @@ int main(int argc, char* argv[]){
   // Handle known flags
   if (args.count("--model")) inputFile = args["--model"];
   if (args.count("--output")) outputFile = args["--output"];
-  if (args.count("--width")) imageWidth = std::stoi(args["--width"]);
-  if (args.count("--height")) imageHeight = std::stoi(args["--height"]);
+  if (args.count("--width")) inputWidth = std::stoi(args["--width"]);
+  if (args.count("--height")) inputHeight = std::stoi(args["--height"]);
   if (args.count("--fov")) fov = std::stof(args["--fov"]);
   if (args.count("--ssp")) ssp = std::stoi(args["--ssp"]);
   if (args.count("--seed")) seed = std::stoi(args["--seed"]);
@@ -67,7 +68,9 @@ int main(int argc, char* argv[]){
   Vec3 lookAt(0.0f, 274.0f, 0.0f); // Look at the center of the Cornell Box
   Vec3 up(0.0f, 1.0f, 0.0f); // Up direction
 
-
+  auto iterationSize = computeAdjustedSize(inputWidth,inputHeight);
+  int imageWidth = iterationSize.first;
+  int imageHeight = iterationSize.second;
   Camera camera(imageWidth, imageHeight, fov, cameraPosition, lookAt, up);
 
  
@@ -92,8 +95,6 @@ scene.commit();
 sycl::buffer<syclScene, 1> scenebuf(&scene, sycl::range<1>(1));
 
 
-// constexpr size_t vector_size = 1000;
-// std::vector<Vec3>
 constexpr size_t recordSize = 640*120*8000;
 
 
@@ -128,7 +129,6 @@ myQueue.submit([&](sycl::handler& cgh) {
   //sycl::stream out(imageWidth, imageHeight, cgh);  
 sycl::stream out(1024, 256, cgh);
 auto sceneAcc = scenebuf.template get_access<sycl::access::mode::read>(cgh);
-auto imageAcc = imagebuf.template get_access<sycl::access::mode::write>(cgh);
 auto cameraAcc = camerabuf.template get_access<sycl::access::mode::read>(cgh);
 
 sycl::accessor counter_acc(counter_buf, cgh, sycl::write_only);
@@ -199,7 +199,6 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
   });
 });
 myQueue.wait_and_throw();
-std::cout << "done\n";
 myQueue.update_host(imagebuf.get_access());
 myQueue.update_host(counter_buf.get_access());
 myQueue.update_host(direction_buf.get_access());
@@ -211,14 +210,18 @@ std::cout << "finished rendering" << std::endl;
 
 HDF5Writer writer(outputFile, fov, imageHeight, imageWidth);
 
-for(int i = 0;i<recordNum;i++){
+if (collisionRecord.size() > recordNum) {
+    collisionRecord.resize(recordNum);
+    travelDistanceRecord.resize(recordNum);
+    positionRecord.resize(recordNum);
+    directionRecord.resize(recordNum);
+} 
 
-
-  if(collisionRecord[i]>0){
-    writer.writeRecord(collisionRecord[i],travelDistanceRecord[i],positionRecord[i],directionRecord[i]);
-  }
-
-}
+sycl::queue HDF5WriterQueue(sycl::cpu_selector_v);
+HDF5WriterQueue.wait_and_throw();
+auto filterRecord = filterCollisionRecordsSYCL(collisionRecord,travelDistanceRecord,positionRecord,directionRecord,HDF5WriterQueue);
+std::cout << "finished filtering"<< std::endl;
+writer.writeBatch(filterRecord);
 
 writer.finalizeFile();
 

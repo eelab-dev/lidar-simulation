@@ -128,7 +128,6 @@ def save_image(image, rectangle=None,imageFileName = "./",distance_range=[2100,3
     range_max = distance_range[1]
     show_image = np.ma.masked_where((image == 0), image)
 
-
     # Ensure the directory exists
     os.makedirs(os.path.dirname(imageFileName), exist_ok=True)
     plt.imshow(show_image,cmap=cmap ,vmin = range_min,vmax=range_max ,interpolation='nearest')

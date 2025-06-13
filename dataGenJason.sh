@@ -11,31 +11,37 @@ cd "$SCRIPT_DIR" || exit 1
 source .venv/bin/activate
 
 
-config="STM32Lidar/positive/stm32_positive_config.json"
+config="STM32_54x42x18_Lidar/positive/positive_config.json"
 config_dir=$(dirname "$config")
 
-iteration=$(jq -r '.global_settings.iteration // empty' "$config")
+endIndex=$(jq -r '.global_settings.end_index// empty' "$config")
 global_prefix=$(jq -r '.global_settings.global_prefix // empty' "$config")
 detector_distance=$(jq -r '.global_settings.detector_distance// empty' "$config") 
 inputFov=$(jq -r '.global_settings.fov// empty' "$config")
+startIndex=$(jq -r '.global_settings.start_index// empty' "$config")
 
-if [ -z "$iteration" ]; then
-    echo "'iteration' not found."
-    exit 1;
-fi
+
 
 if [ -z "$global_prefix" ]; then
     echo "'global_prefix' not found."
     exit 1;
 fi
 
+if [ -z "$startIndex" ]; then
+    echo "'startIndex' not found."
+    exit 1;
+fi
 
+if [ -z "$endIndex" ]; then
+    echo "'endIndex' not found."
+    exit 1;
+fi
 
-for ((i=1;i<=iteration;i++))
+for ((i=startIndex;i<=endIndex+ iteration;i++))
 do
 
     if jq -e '.model_generation | length > 0' "$config" > /dev/null 2>&1; then
-        model_dir=$(jq -r '.model_generation.output_model_dir' "$config")
+        model_dir=$(jq -r '.model_generation.output_model_dir // "model"' "$config")
         model_dir="${config_dir}/${model_dir}"
         mkdir -p "$model_dir"
         model_file="${global_prefix}_obj_${i}.obj"
@@ -92,7 +98,7 @@ do
 
         if [  -f "$input_model_file_path" ]; then
 
-            rawData_dir=$(jq -r '.simulation_generation.output_rawData_dir' "$config")
+            rawData_dir=$(jq -r '.simulation_generation.output_rawData_dir // "rawData"' "$config")
             rawData_dir="${config_dir}/${rawData_dir}"
             mkdir -p "$rawData_dir"     
 
@@ -109,6 +115,16 @@ do
                 simulation_flag+=" --ssp ${ssp}"
             fi
 
+            if jq -e '.simulation_generation.width' "$config" > /dev/null 2>&1; then
+                width=$(jq -r '.simulation_generation.width' "$config")
+                simulation_flag+=" --width ${width}"
+            fi
+
+            if jq -e '.simulation_generation.height' "$config" > /dev/null 2>&1; then
+                height=$(jq -r '.simulation_generation.height' "$config")
+                simulation_flag+=" --height ${height}"
+            fi
+
             if [ -n "$detector_distance" ]; then
                 simulation_flag+=" --detectorDistance ${detector_distance}"
             fi
@@ -121,7 +137,7 @@ do
             ./syclImplementation/build/LiDARSimulation \
             --model "${input_model_file_path}" \
             --output "${rawData_file_path}" \
-            --seed $i \
+            --seed 4 \
             $simulation_flag || { 
             echo "Error running HELLOEMBREE"; 
             exit 1;} 
@@ -136,7 +152,7 @@ do
         input_rawData_file="${global_prefix}_rawData_${i}.h5"
         input_rawData_file_path="${input_rawData_dir}/${input_rawData_file}"
         if [ -f "$input_rawData_file_path" ]; then
-            output_pixelized_dir=$(jq -r '.pixelization_process.output_pixelized_dir' "$config")
+            output_pixelized_dir=$(jq -r '.pixelization_process.output_pixelized_dir // "pixelizedData"' "$config")
             output_pixelized_dir="${config_dir}/${output_pixelized_dir}"
             mkdir -p "$output_pixelized_dir"
 
@@ -181,8 +197,8 @@ do
         pixelized_file_path="${input_pixelized_dir}/${input_pixelized_file}"
 
         if [ -f "$pixelized_file_path" ]; then
-            depthImage_dir=$(jq -r '.imageFormation_process.output_depthImage_dir' "$config")
-            histogram_dir=$(jq -r '.imageFormation_process.output_histogram_dir' "$config")
+            depthImage_dir=$(jq -r '.imageFormation_process.output_depthImage_dir // "depthImage"' "$config")
+            histogram_dir=$(jq -r '.imageFormation_process.output_histogram_dir // "histogramData"' "$config")
 
             depthImage_dir="${config_dir}/${depthImage_dir}"
             histogram_dir="${config_dir}/${histogram_dir}"
@@ -196,17 +212,17 @@ do
             # Append required input
             simulation_flag+=" --input_file ${pixelized_file_path}"
 
-            if jq -e '.imageFormation_process.output_histogram_dir' "$config" > /dev/null 2>&1; then
-                histogram_file="${global_prefix}_histogram_${i}.h5"
-                histogram_file_path="${histogram_dir}/${histogram_file}"
-                simulation_flag+=" --output_file ${histogram_file_path}"
-            fi
+
+            # Construct output path and add to simulation_flag
+            histogram_file="${global_prefix}_histogram_${i}.h5"
+            histogram_file_path="${histogram_dir}/${histogram_file}"
+            simulation_flag+=" --output_file ${histogram_file_path}"
             
-            if jq -e '.imageFormation_process.output_depthImage_dir' "$config" > /dev/null 2>&1; then
-                depthImage_file="${global_prefix}_depth${i}.png"
-                depthImage_file_path="${depthImage_dir}/${depthImage_file}"
-                simulation_flag+=" --output_image ${depthImage_file_path}"
-            fi
+
+            # Build output path and update simulation_flag
+            depthImage_file="${global_prefix}_depth${i}.png"
+            depthImage_file_path="${depthImage_dir}/${depthImage_file}"
+            simulation_flag+=" --output_image ${depthImage_file_path}"
 
             if jq -e '.imageFormation_process.bin_number' "$config" > /dev/null 2>&1; then
                 bin_number=$(jq -r '.imageFormation_process.bin_number' "$config")

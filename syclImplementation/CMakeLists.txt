@@ -28,7 +28,7 @@ FIND_PACKAGE(HDF5 REQUIRED COMPONENTS C CXX)
 
 if(ENABLE_GPGPU)
    set(SYCL_FLAGS "-fsycl"
-         "-fsycl-targets=nvptx64-nvidia-cuda"
+         "-fsycl-targets=nvptx64-nvidia-cuda,spir64_x86_64"
          "-fsycl-unnamed-lambda"
          "-Wno-linker-warnings")
 else()

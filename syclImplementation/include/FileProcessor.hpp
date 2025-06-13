@@ -5,6 +5,11 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <sycl/sycl.hpp>
+// #include <sycl/ext/oneapi/algorithm.hpp>
+#include <oneapi/dpl/algorithm>
+#include <oneapi/dpl/execution>
+#include <iostream>
 
 // Extracts --key value pairs from command-line arguments
 std::unordered_map<std::string, std::string> parseFlags(int argc, char* argv[]) {
@@ -22,8 +27,17 @@ std::unordered_map<std::string, std::string> parseFlags(int argc, char* argv[]) 
     return args;
 }
 
+struct CollisionRecord {
+    int collisionCount;
+    float distance;
+    float collisionLocation[3];
+    float collisionDirection[3];
+};
 
 
+void host_exclusive_scan(const std::vector<int>& in, std::vector<int>& out) {
+    std::exclusive_scan(in.begin(), in.end(), out.begin(), 0);
+}
 
 class HDF5Writer {
 private:
@@ -32,19 +46,27 @@ private:
     H5::H5File file;
     H5::DataSet datasetCollision;
     
-    struct CollisionRecord {
-        int collisionCount;
-        float distance;
-        float collisionLocation[3];
-        float collisionDirection[3];
-    };
+
+
 
 public:
     explicit HDF5Writer(const std::string& outputFilename,float fov, int height, int width);
     void finalizeFile();
     void writeRecord(int collisionCount, float distance, Vec3 collisionLocation, Vec3 collisionDirection);
+    
+    void writeToFile(
+        const std::vector<int>& collisionCount,
+        const std::vector<float>& distance,
+        const std::vector<Vec3>& collisionLocation,
+        const std::vector<Vec3>& collisionDirection,
+        sycl::queue& myQueue
+    );
+
+    void writeBatch(const std::vector<CollisionRecord>& records);
 private:
     void initializeFile(float fov,int height,int width);
+    
+
 };
 
 // Constructor
@@ -124,6 +146,110 @@ void HDF5Writer::writeRecord(int collisionCount, float distance, Vec3 collisionL
 }
 
 
+void HDF5Writer::writeBatch(const std::vector<CollisionRecord>& records) {
+    if (records.empty()) return;
+
+    hsize_t new_size[1] = { current_index + records.size() };
+    datasetCollision.extend(new_size);
+
+    hsize_t offset[1] = { current_index };
+    hsize_t dims[1] = { records.size() };
+
+    H5::DataSpace memspace(1, dims);
+    H5::DataSpace dataspace = datasetCollision.getSpace();
+    dataspace.selectHyperslab(H5S_SELECT_SET, dims, offset);
+
+    datasetCollision.write(records.data(), datasetCollision.getCompType(), memspace, dataspace);
+    current_index += records.size();
+}
+
+
 void HDF5Writer::finalizeFile() {
     file.close();
 }
+
+
+
+std::vector<CollisionRecord> filterCollisionRecordsSYCL(
+    const std::vector<int>& collisionCount,
+    const std::vector<float>& distance,
+    const std::vector<Vec3>& collisionLocation,
+    const std::vector<Vec3>& collisionDirection,
+    sycl::queue& myQueue
+)
+{
+    size_t recordNum = collisionCount.size();
+    std::vector<int> mask(recordNum);
+    std::vector<int> positions(recordNum);
+    std::vector<CollisionRecord> filtered(recordNum); // max possible size
+
+    // Step 1: Build mask where collisionCount > 0
+    {
+        sycl::buffer<int> count_buf(collisionCount);
+        sycl::buffer<int> mask_buf(mask);
+
+        myQueue.submit([&](sycl::handler& h) {
+            auto count = count_buf.get_access<sycl::access::mode::read>(h);
+            auto m = mask_buf.get_access<sycl::access::mode::write>(h);
+
+            h.parallel_for(recordNum, [=](sycl::id<1> i) {
+                m[i] = count[i] > 0 ? 1 : 0;
+            });
+        });
+    }
+
+    host_exclusive_scan(mask, positions);
+
+    // Step 3: compact valid records into `filtered`
+    {
+        sycl::buffer<int> mask_buf(mask);
+        sycl::buffer<int> pos_buf(positions);
+        sycl::buffer<int> count_buf(collisionCount);
+        sycl::buffer<float> dist_buf(distance);
+        sycl::buffer<Vec3> loc_buf(collisionLocation);
+        sycl::buffer<Vec3> dir_buf(collisionDirection);
+        sycl::buffer<CollisionRecord> out_buf(filtered);
+
+        myQueue.submit([&](sycl::handler& h) {
+            auto m = mask_buf.get_access<sycl::access::mode::read>(h);
+            auto p = pos_buf.get_access<sycl::access::mode::read>(h);
+            auto c = count_buf.get_access<sycl::access::mode::read>(h);
+            auto d = dist_buf.get_access<sycl::access::mode::read>(h);
+            auto loc = loc_buf.get_access<sycl::access::mode::read>(h);
+            auto dir = dir_buf.get_access<sycl::access::mode::read>(h);
+            auto out = out_buf.get_access<sycl::access::mode::write>(h);
+
+            h.parallel_for(recordNum, [=](sycl::id<1> i) {
+                if (m[i]) {
+                    int idx = p[i];
+                    CollisionRecord rec;
+                    rec.collisionCount = c[i];
+                    rec.distance = d[i];
+                    rec.collisionLocation[0] = loc[i].x;
+                    rec.collisionLocation[1] = loc[i].y;
+                    rec.collisionLocation[2] = loc[i].z;
+                    rec.collisionDirection[0] = dir[i].x;
+                    rec.collisionDirection[1] = dir[i].y;
+                    rec.collisionDirection[2] = dir[i].z;
+                    out[idx] = rec;
+                }
+            });
+        });
+        myQueue.wait_and_throw();
+    }
+
+    // Step 4: Trim to valid size
+    int validCount = 0;
+    if (recordNum > 0) {
+        validCount = positions[recordNum - 1] + mask[recordNum - 1];
+    }
+    filtered.resize(validCount);
+
+    return filtered;
+}
+
+
+
+
+
+
