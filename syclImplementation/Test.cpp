@@ -87,8 +87,6 @@ std::cout << "Running on " << myQueue.get_device().get_info<sycl::info::device::
 sycl::buffer<CollisionRecord> collision_buf(collision);
 sycl::buffer<int, 1> counter_buf(&recordNum, sycl::range<1>(1));
 
-std::vector<Vec3> image(imageWidth * imageHeight);
-sycl::buffer<Vec3, 1> imagebuf(image.data(), sycl::range<1>(image.size()));
 sycl::buffer<Camera, 1> camerabuf(&camera, sycl::range<1>(1));
 
 myQueue.wait_and_throw();
@@ -138,7 +136,6 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
   });
 });
 myQueue.wait_and_throw();
-myQueue.update_host(imagebuf.get_access());
 myQueue.update_host(counter_buf.get_access());
 myQueue.update_host(collision_buf.get_access());
 std::cout << "finished rendering" << std::endl;
@@ -153,8 +150,9 @@ if (collision.size() > recordNum) {
 
 sycl::queue HDF5WriterQueue(sycl::cpu_selector_v);
 HDF5WriterQueue.wait_and_throw();
-auto filterRecord = filterCollisionRecordsSYCL(collision,HDF5WriterQueue);
-writer.writeBatch(filterRecord);
+// auto filterRecord = filterCollisionRecordsSYCL(collision,HDF5WriterQueue);
+// writer.writeBatch(filterRecord);
+writer.writeBatch(collision);
 writer.finalizeFile();
 
 
