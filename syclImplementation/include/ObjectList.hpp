@@ -11,6 +11,21 @@ struct Object
 };
 
 
+
+bool spaceCompare(const GeometryList geometryList ,const Object& obja, const Object& objb, int dim)
+{
+
+    auto a = geometryList.getGeometry(obja._geometryIndex);
+    auto b = geometryList.getGeometry(objb._geometryIndex);
+
+
+    myComputeType aCentroid = a->getBounds().Centroid()[dim];
+    myComputeType bCentroid = b->getBounds().Centroid()[dim];
+
+    return aCentroid < bCentroid;
+}
+
+
 struct ObjectListContent
 {
     sycl::queue& _myQueue;
@@ -93,7 +108,84 @@ struct ObjectListContent
             _bvhResource[i]._rightIndex = -1;
         }
 
+        BVHArray bvh;  
+
+        GeometryList Tem_geometryList;
+
+        Tem_geometryList.setTriangles(this->_triangleList, this->_triangleListSize);
+        Tem_geometryList.setGeometryList(this->_geometryList, this->_geometryListSize);
+
+        bvh.setBVHArray(this->_bvhSize, this->_bvhResource);
+        bvh.buildTree(Tem_geometryList,this->_objectList, 0, _objectListSize - 1);      
+
     }
+
+    void toDevice() {
+        // Triangle List
+        Triangle* triangle_device_ptr = nullptr;
+        if (_triangleList && _triangleListSize > 0) {
+            triangle_device_ptr = sycl::malloc_device<Triangle>(_triangleListSize, _myQueue);
+            _myQueue.memcpy(triangle_device_ptr, _triangleList, sizeof(Triangle) * _triangleListSize).wait();
+            sycl::free(_triangleList, _myQueue);
+            _triangleList = triangle_device_ptr;
+        }
+
+        // Geometry List
+        if (_geometryList && _geometryListSize > 0) {
+            // Create a temporary host-side array of device pointers
+            std::vector<Geometry*> geometry_ptrs(_geometryListSize);
+            for (size_t i = 0; i < _geometryListSize; ++i) {
+                geometry_ptrs[i] = &_triangleList[i]; // Use device-side triangle pointer
+            }
+
+            Geometry** device_ptr = sycl::malloc_device<Geometry*>(_geometryListSize, _myQueue);
+            _myQueue.memcpy(device_ptr, geometry_ptrs.data(), sizeof(Geometry*) * _geometryListSize).wait();
+            sycl::free(_geometryList, _myQueue);
+            _geometryList = device_ptr;
+        }
+
+        // Diffuse Material List
+        diffuseMaterial* diffuse_device_ptr = nullptr;
+        if (_diffuseMaterialList && _diffuseMaterialListSize > 0) {
+            diffuse_device_ptr = sycl::malloc_device<diffuseMaterial>(_diffuseMaterialListSize, _myQueue);
+            _myQueue.memcpy(diffuse_device_ptr, _diffuseMaterialList, sizeof(diffuseMaterial) * _diffuseMaterialListSize).wait();
+            sycl::free(_diffuseMaterialList, _myQueue);
+            _diffuseMaterialList = diffuse_device_ptr;
+        }
+
+        // Material List
+        if (_materialList && _materialListSize > 0) {
+            std::vector<Material*> material_ptrs(_materialListSize);
+            for (size_t i = 0; i < _materialListSize; ++i) {
+                material_ptrs[i] = &_diffuseMaterialList[i]; // Use device-side pointer
+            }
+
+            Material** device_ptr = sycl::malloc_device<Material*>(_materialListSize, _myQueue);
+            _myQueue.memcpy(device_ptr, material_ptrs.data(), sizeof(Material*) * _materialListSize).wait();
+            sycl::free(_materialList, _myQueue);
+            _materialList = device_ptr;
+        }
+
+        // Object List
+        if (_objectList && _objectListSize > 0) {
+            Object* device_ptr = sycl::malloc_device<Object>(_objectListSize, _myQueue);
+            _myQueue.memcpy(device_ptr, _objectList, sizeof(Object) * _objectListSize).wait();
+            sycl::free(_objectList, _myQueue);
+            _objectList = device_ptr;
+        }
+
+        // BVH Resource
+        if (_bvhResource && _bvhSize > 0) {
+            BVHNode* device_ptr = sycl::malloc_device<BVHNode>(_bvhSize, _myQueue);
+            _myQueue.memcpy(device_ptr, _bvhResource, sizeof(BVHNode) * _bvhSize).wait();
+            sycl::free(_bvhResource, _myQueue);
+            _bvhResource = device_ptr;
+        }
+
+        _myQueue.wait();
+        std::cout << "[INFO] Data moved to device memory with updated pointer redirection.\n";
+    }
+
 
     ~ObjectListContent()
     {
@@ -151,6 +243,7 @@ class ObjectList
             
         void setObjects(ObjectListContent& content)
         {
+            content.toDevice();
             _objectList = content._objectList;
             _objectListSize = content._objectListSize;
             _geometryList.setTriangles(content._triangleList, content._triangleListSize);
@@ -158,7 +251,7 @@ class ObjectList
             _materialList.setDiffuseList(content._diffuseMaterialList, content._diffuseMaterialListSize);            
             _materialList.setMaterialList(content._materialList, content._materialListSize);
             _bvh.setBVHArray(content._bvhSize, content._bvhResource);
-            _bvh.buildTree(this, 0, _objectListSize - 1);
+            // _bvh.buildTree(_geometryList,_objectList, 0, _objectListSize - 1);
         }
 
         ObjectList(const ObjectList& other)
@@ -251,70 +344,37 @@ class ObjectList
         }
 
 
-        void spacePartitioning(long left, long right)
-        {
-
-            //std::cout << left << "  " << right << std::endl;
-            Bounds3 centroidBounds;
-            for (int i = left; i <= right; i++)
-            {
-                auto _geometry = _geometryList.getGeometry(_objectList[i]._geometryIndex);
-                centroidBounds = Union(centroidBounds, _geometry->getBounds().Centroid());
-            }
-            int dim = centroidBounds.maxExtent();
-            // std::cout << dim << std::endl;
-            // for (int i = left; i <= right; i++)
-            // {
-            //     auto _geometry = _geometryList.getGeometry(_objectList[i]._geometryIndex);
-            //     std::cout << "ID number " << _objectList[i]._geometryIndex<< "  " <<_geometry->getBounds().Centroid()[dim] << std::endl;
-            // }
-
-            // std::cout << std::endl;
-            if (dim == 0)
-            {
-                std::sort(_objectList + left, _objectList + right + 1 , [this](const Object& obja, const Object& objb) {
-                    return spaceCompare(obja, objb, 0);
-                });
-            }
-            else if (dim == 1)
-            {
-                std::sort(_objectList + left, _objectList + right + 1, [this](const Object& obja, const Object& objb) {
-                    return spaceCompare(obja, objb, 1);
-                });
-            }
-            else if (dim == 2)
-            {
-                std::sort(_objectList + left, _objectList + right + 1, [this](const Object& obja, const Object& objb) {
-                    return spaceCompare(obja, objb, 2);
-                });
-            }
-            // std::cout << "After sorting" << std::endl;
-            // for (int i = left; i <= right; i++)
-            // {
-            //     auto _geometry = _geometryList.getGeometry(_objectList[i]._geometryIndex);
-            //     std::cout << "ID number " << _objectList[i]._geometryIndex<< "  " <<_geometry->getBounds().Centroid()[dim] << std::endl;
-            // }
-        
-        }
-
-        bool spaceCompare(const Object& obja, const Object& objb, int dim)
-        {
-
-            auto a = _geometryList.getGeometry(obja._geometryIndex);
-            auto b = _geometryList.getGeometry(objb._geometryIndex);
 
 
-            myComputeType aCentroid = a->getBounds().Centroid()[dim];
-            myComputeType bCentroid = b->getBounds().Centroid()[dim];
-
-            return aCentroid < bCentroid;
-        }
 
 };
 
 
+Bounds3 getBounds(const GeometryList& _geometryList, Object* _objectList,size_t index)
+{
+    Object _object = _objectList[index];
+    Geometry* _geometry = _geometryList.getGeometry(_object._geometryIndex);
+    return _geometry->getBounds();
+}
 
-long BVHArray::buildTree(ObjectList* sceneObject, int left, int right)
+void spacePartitioning(const GeometryList& _geometryList, Object* _objectList, long left, long right)
+{
+    Bounds3 centroidBounds;
+    for (int i = left; i <= right; i++)
+    {
+        auto _geometry = _geometryList.getGeometry(_objectList[i]._geometryIndex);
+        centroidBounds = Union(centroidBounds, _geometry->getBounds().Centroid());
+    }
+    int dim = centroidBounds.maxExtent();
+
+    std::sort(_objectList + left, _objectList + right + 1,
+              [&_geometryList, dim](const Object& obja, const Object& objb) {
+                  return spaceCompare(_geometryList, obja, objb, dim);
+              });
+}
+
+
+long BVHArray::buildTree(const GeometryList& _geometryList, Object* _objectList, int left, int right)
 {
 
     static long index = 0;
@@ -333,25 +393,25 @@ long BVHArray::buildTree(ObjectList* sceneObject, int left, int right)
     if (left == right)
     {
         _array[curIndex]._objectIndex = left;
-        _array[curIndex]._bounds = sceneObject->getBounds(left);
+        _array[curIndex]._bounds = getBounds(_geometryList,_objectList,left);
         return curIndex;
     }
     else if (left + 1 == right)
     {
-        long leftIndex = buildTree(sceneObject, left, left);
-        long rightIndex = buildTree(sceneObject, right, right);
+        long leftIndex = buildTree(_geometryList, _objectList, left, left);
+        long rightIndex = buildTree(_geometryList, _objectList, right, right);
         _array[curIndex]._leftIndex = leftIndex; 
         _array[curIndex]._rightIndex = rightIndex;
         
         _array[curIndex]._bounds = Union(_array[leftIndex]._bounds, _array[rightIndex]._bounds);
         return curIndex;
     }
-    sceneObject->spacePartitioning(left, right);
+    spacePartitioning(_geometryList, _objectList,left, right);
     long mid = (left + right) / 2;
     
 
-    long leftIndex = buildTree(sceneObject,  left, mid);
-    long rightIndex = buildTree(sceneObject, mid + 1, right); 
+    long leftIndex = buildTree(_geometryList, _objectList,  left, mid);
+    long rightIndex = buildTree(_geometryList, _objectList, mid + 1, right); 
     _array[curIndex]._leftIndex = leftIndex;
     _array[curIndex]._rightIndex = rightIndex;
 

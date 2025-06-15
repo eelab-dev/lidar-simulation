@@ -3,6 +3,7 @@
 #include "Bounds3.hpp"
 
 class ObjectList;
+struct Object;
 struct BVHNode
 {
     long _rightIndex = -1;
@@ -71,8 +72,9 @@ class BVHArray
         return _arraySize;
     }
 
-    long buildTree(ObjectList* sceneObject, int left, int right);
+    // long buildTree(ObjectList* sceneObject, int left, int right);
 
+    long buildTree(const GeometryList& _geometryList, Object* _objectList, int left, int right);
     ~BVHArray()
     {
 
@@ -100,7 +102,7 @@ void BVHArray::setBVHArray(size_t arraySize, BVHNode* array)
 
     _arraySize = arraySize;
     _array = array;
-    std::cout << "The array size is " << _arraySize << std::endl;
+    //  std::cout << "The array size is " << _arraySize << std::endl;
     
 }
 
