@@ -1,0 +1,9 @@
+[package]
+name = "lidar_pixelation"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+ndarray = "0.15"
+hdf5 = "0.8"
