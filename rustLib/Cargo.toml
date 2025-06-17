@@ -7,3 +7,9 @@ edition = "2021"
 clap = { version = "4", features = ["derive"] }
 ndarray = "0.15"
 hdf5 = "0.8"
+
+[[bin]]
+name = "lidar_pixelation"
+path = "src/pixelationCLI.rs"
+
+

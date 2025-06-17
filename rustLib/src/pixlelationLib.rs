@@ -37,8 +37,7 @@ impl Ray {
     }
 }
 
-
-#[derive(H5Type, Clone, Debug)]
+#[derive(H5Type, Clone, Debug, Copy)]
 #[repr(C)]
 pub struct PhotonRecord {
     pub distance: f32,
@@ -55,7 +54,7 @@ pub struct Detector {
     pub pixel_array_count: Array2<u32>,
     pub pixel_array: Array2<f64>,
     pub depth_image: Array2<f64>,
-    pub pixel_output_array: Vec<Vec<Vec<(f32, i32)>>>, // (distance, collision)
+    pub pixel_output_array: Vec<Vec<Vec<(f32, i32)>>>,
 
     pub detector_width: f64,
     pub detector_height: f64,
@@ -121,7 +120,7 @@ impl Detector {
         let pixel_x = ((x - self.origin_x) / self.width_resolution) as isize;
         let pixel_y = (self.resolution_height as isize - ((y - self.origin_y) / self.height_resolution) as isize);
 
-        if pixel_x >= 0 && pixel_x < self.resolution_width as isize && pixel_y >= 0 && pixel_y < self.resolution_height as isize {
+        if pixel_x >= 0 && pixel_x < self.resolution_width  as isize && pixel_y >= 0 && pixel_y < self.resolution_height as isize {
             let x = pixel_x as usize;
             let y = pixel_y as usize;
 
@@ -132,6 +131,7 @@ impl Detector {
             self.min_distance = self.min_distance.min(photon.distance);
             self.max_distance = self.max_distance.max(photon.distance);
         }
+
     }
 
     pub fn generate_depth_image(&mut self) {
@@ -151,30 +151,115 @@ impl Detector {
         let file = File::create(filename)?;
         let shape = (self.resolution_width, self.resolution_height);
 
-        let mut data: Vec<Vec<VarLenArray<PhotonRecord>>> = Vec::with_capacity(self.resolution_width);
+        // Initialize Array2 of VarLenArray<PhotonRecord>
+        let mut data: Array2<VarLenArray<PhotonRecord>> = Array2::from_shape_simple_fn(shape, || {
+            VarLenArray::from_slice(&[])
+        });
+
+        // Fill the array with actual data
         for x in 0..self.resolution_width {
-            let mut row = Vec::with_capacity(self.resolution_height);
             for y in 0..self.resolution_height {
-                let photons = &self.pixel_output_array[x][y];
-                let varray: VarLenArray<PhotonRecord> = VarLenArray::from_slice(&photons);
-                row.push(varray);
+                let records: Vec<PhotonRecord> = self.pixel_output_array[x][y]
+                    .iter()
+                    .map(|(d, c)| PhotonRecord {
+                        distance: *d,
+                        collision_count: *c,
+                    })
+                    .collect();
+                data[(x, y)] = VarLenArray::from_slice(&records);
             }
-            data.push(row);
         }
 
-        let dataset = file.new_dataset::<VarLenArray<PhotonRecord>>()
+        // Create the dataset and write the full 2D array
+        let dataset = file
+            .new_dataset::<VarLenArray<PhotonRecord>>()
             .shape(shape)
             .create("photon_data")?;
 
-        for x in 0..self.resolution_width {
-            for y in 0..self.resolution_height {
-                dataset.write_slice(&data[x][y], (x, y))?;
-            }
-        }
+        dataset.write(&data)?;
 
-        dataset.new_attr::<u32>().create("width")?.write_scalar(&(self.resolution_width as u32))?;
-        dataset.new_attr::<u32>().create("height")?.write_scalar(&(self.resolution_height as u32))?;
-
+        // Add metadata attributes
+        file.new_attr::<u32>().create("width")?.write_scalar(&(self.resolution_width as u32))?;
+        file.new_attr::<u32>().create("height")?.write_scalar(&(self.resolution_height as u32))?;
         Ok(())
     }
+}
+
+#[derive(Debug)]
+pub struct FailedRayRecord {
+    pub index: usize,
+    pub error: String,
+}
+
+
+#[derive(H5Type, Clone, Debug)]
+#[repr(C)]
+pub struct CollisionRecord {
+    pub CollisionCount: i32,
+    pub Distance: f64,
+    pub CollisionLocation: [f64; 3],
+    pub CollisionDirection: [f64; 3],
+}
+
+pub fn read_raw_data<P: AsRef<std::path::Path>>(file_name: P) -> (Vec<Ray>, Vec<FailedRayRecord>) {
+    let mut photons = Vec::new();
+    let mut failed_lines = Vec::new();
+
+    let file = match File::open(&file_name) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("Error opening HDF5 file: {}", e);
+            return (photons, failed_lines);
+        }
+    };
+
+    let dataset = match file.dataset("CollisionData") {
+        Ok(ds) => ds,
+        Err(e) => {
+            eprintln!("Error accessing CollisionData dataset: {}", e);
+            return (photons, failed_lines);
+        }
+    };
+
+    let records: Vec<CollisionRecord> = match dataset.read_raw::<CollisionRecord>() {
+        Ok(data) => data,
+        Err(e) => {
+            eprintln!("Error reading CollisionData as compound struct: {}", e);
+            return (photons, failed_lines);
+        }
+    };
+
+    for (i, rec) in records.iter().enumerate() {
+        if rec.CollisionCount != 0 {
+            match std::panic::catch_unwind(|| {
+                Ray::new(
+                    rec.CollisionLocation[0],
+                    rec.CollisionLocation[1],
+                    rec.CollisionLocation[2],
+                    rec.CollisionDirection[0],
+                    rec.CollisionDirection[1],
+                    rec.CollisionDirection[2],
+                    rec.CollisionCount,
+                    rec.Distance,
+                    i,
+                )
+            }) {
+                Ok(ray) => photons.push(ray),
+                Err(_) => failed_lines.push(FailedRayRecord {
+                    index: i,
+                    error: "Panic during Ray creation".to_string(),
+                }),
+            }
+        }
+    }
+
+    (photons, failed_lines)
+}
+
+pub fn read_file_parameter<P: AsRef<std::path::Path>>(file_name: P) -> hdf5::Result<(f64, usize, usize)> {
+    let file = File::open(file_name)?;
+    let fov = file.attr("FOV")?.read_scalar::<f64>()?;
+    let height = file.attr("ImageHeight")?.read_scalar::<u32>()? as usize;
+    let width = file.attr("ImageWidth")?.read_scalar::<u32>()? as usize;
+    Ok((fov, height, width))
 }

@@ -62,14 +62,15 @@ class detector:
         pixel_y =  self.resolution_height - int((y - self.origin_y) / self.heightResolution)
         # pixel_x,pixel_y = pixel_y,pixel_x
         # pixel_y = int((y - self.origin_y) / self.heightResolution)
-        self.minDistance = min(self.minDistance, income_photon.distance)
-        self.maxDistance = max(self.maxDistance, income_photon.distance)
+
         if pixel_x >= 0 and pixel_x < self.resolution_width and pixel_y >= 0 and pixel_y < self.resolution_height:
             self.pixel_array_count[pixel_x][pixel_y] += 1
             self.pixel_array[pixel_x][pixel_y] += income_photon.distance
             # print(pixel_x, pixel_y, income_photon.distance, income_photon.collosion, self.resolution_width, self.resolution_height)
             self.pixel_output_array[pixel_x][pixel_y].append((income_photon.distance, income_photon.collosion))
-
+            self.minDistance = min(self.minDistance, income_photon.distance)
+            self.maxDistance = max(self.maxDistance, income_photon.distance)
+            
     def generateDepthImage(self):
         for i in range(self.resolution_width):
             for j in range(self.resolution_height):

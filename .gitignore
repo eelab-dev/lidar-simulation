@@ -27,3 +27,29 @@ external
 positive/
 negative/
 *.h5
+# Rust-specific
+/rustLib/target
+**/*.rs.bk
+
+# Cargo-related
+Cargo.lock
+/.cargo/
+/*.crate
+
+# Backup files
+*~
+*.swp
+*.bak
+
+# Binaries and logs
+*.log
+*.tmp
+*.out
+
+# IDEs and editor config
+.idea/
+.vscode/
+*.code-workspace
+
+# Misc
+.DS_Store
