@@ -69,5 +69,34 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 
+# ─── Rust Environment and Build ─────────────────────────────────────
+echo "Setting Rust build output to ./target ..."
+export CARGO_TARGET_DIR=./target
+
+echo "Compiling Rust project..."
+cargo build --release
+
+if [ -f "Cargo.toml" ]; then
+    cargo build --release
+    if [ $? -eq 0 ]; then
+        echo "✅ Rust build completed successfully."
+    else
+        echo "❌ Rust build failed!"
+        exit 1
+    fi
+else
+    echo "❌ Cargo.toml not found in current directory."
+    exit 1
+fi
+
+
+# ─── Set Permissions ────────────────────────────────────────────────────
 chmod +x TestGenerator.sh
-chmod +x /syclImplementation/build.sh
+
+if [ -f "./syclImplementation/build.sh" ]; then
+    chmod +x ./syclImplementation/build.sh
+else
+    echo "⚠️ ./syclImplementation/build.sh not found. Skipping permission update."
+fi
+
+echo "🎉 Setup complete!"

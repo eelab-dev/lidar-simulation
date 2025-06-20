@@ -178,9 +178,9 @@ do
 
             echo $simulation_flag
 
-            python3 pythonScripts/pixelation.py \
-                --input "${input_rawData_file_path}" \
-                --output "${output_pixelized_file_path}"\
+            ./rustLib/release/lidar_pixelation \
+                --input_file "${input_rawData_file_path}" \
+                -o "${output_pixelized_file_path}"\
                 $simulation_flag || {
                     echo "Error running pixelize.py on ${input_rawData_file_path}"
                     exit 1

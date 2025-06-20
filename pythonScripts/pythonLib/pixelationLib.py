@@ -57,9 +57,8 @@ class detector:
         x = t * income_photon.dx
         y = t * income_photon.dy
         # calculate the pixel  
-        x,y,self.origin_x,self.origin_y = y,x,self.origin_y,self.origin_x
         pixel_x =  int((x - self.origin_x) / self.widthResolution)
-        pixel_y =  self.resolution_height - int((y - self.origin_y) / self.heightResolution)
+        pixel_y =  int((y - self.origin_y) / self.heightResolution)
         # pixel_x,pixel_y = pixel_y,pixel_x
         # pixel_y = int((y - self.origin_y) / self.heightResolution)
 

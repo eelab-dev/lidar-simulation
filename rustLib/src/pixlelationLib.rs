@@ -114,11 +114,8 @@ impl Detector {
         let mut x = t * photon.dx;
         let mut y = t * photon.dy;
 
-        std::mem::swap(&mut x, &mut y);
-        std::mem::swap(&mut self.origin_x, &mut self.origin_y);
-
         let pixel_x = ((x - self.origin_x) / self.width_resolution) as isize;
-        let pixel_y = (self.resolution_height as isize - ((y - self.origin_y) / self.height_resolution) as isize);
+        let pixel_y =  ((y - self.origin_y) / self.height_resolution) as isize;
 
         if pixel_x >= 0 && pixel_x < self.resolution_width  as isize && pixel_y >= 0 && pixel_y < self.resolution_height as isize {
             let x = pixel_x as usize;

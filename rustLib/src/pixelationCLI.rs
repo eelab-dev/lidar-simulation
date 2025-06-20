@@ -6,26 +6,21 @@ use pixlelationLib::{Detector, read_file_parameter, read_raw_data};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
-struct Args {
-    /// Path to input .h5 file
-    #[arg(long)]
-    input_file: Option<PathBuf>,
+pub struct Args {
+    #[arg(long = "input_file", help = "Path to input .h5 file")]
+    pub input_file: String,
 
-    /// Optional output file name
-    #[arg(short, long)]
-    output_file: Option<PathBuf>,
+    #[arg(short = 'o', long = "output_file", help = "Output .h5 file name")]
+    pub output_file: Option<String>,
 
-    /// Field of view of the image formation
-    #[arg(long)]
-    fov: Option<f64>,
+    #[arg(long = "fov", help = "Field of view")]
+    pub fov: Option<f64>,
 
-    /// Height of the image in pixels
-    #[arg(long)]
-    image_height: Option<usize>,
+    #[arg(long = "image_width", help = "Width of the image in pixels")]
+    pub image_width: Option<usize>,
 
-    /// Width of the image in pixels
-    #[arg(long)]
-    image_width: Option<usize>,
+    #[arg(long = "image_height", help = "Height of the image in pixels")]
+    pub image_height: Option<usize>,
 }
 
 fn main() -> hdf5::Result<()> {
@@ -36,12 +31,16 @@ fn main() -> hdf5::Result<()> {
     let mut image_height = 500;
     let mut image_width = 500;
 
-    if let Some(ref path) = args.input_file {
-        input_file_path = path.clone();
-        let (input_fov, input_height, input_width) = read_file_parameter(&input_file_path)?;
-        fov = input_fov;
-        image_height = input_height;
-        image_width = input_width;
+    // Override input file if provided
+    if !args.input_file.is_empty() {
+        input_file_path = PathBuf::from(&args.input_file);
+
+        // Try to extract parameters from the file
+        if let Ok((input_fov, input_h, input_w)) = read_file_parameter(&input_file_path) {
+            fov = input_fov;
+            image_height = input_h;
+            image_width = input_w;
+        }
     }
 
     if let Some(val) = args.fov {
@@ -58,7 +57,7 @@ fn main() -> hdf5::Result<()> {
         let base = input_file_path.file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("output");
-        PathBuf::from(format!("{}_len.h5", base))
+            format!("{}_len.h5", base)
     });
 
     let mut detector = Detector::new(0.01, fov, image_width, image_height);
