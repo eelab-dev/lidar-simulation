@@ -30,7 +30,7 @@ negative/
 # Rust-specific
 /rustLib/target
 **/*.rs.bk
-
+/rustLib/release
 # Cargo-related
 Cargo.lock
 /.cargo/
