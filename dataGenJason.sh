@@ -39,6 +39,7 @@ fi
 
 for ((i=startIndex;i<=endIndex+ iteration;i++))
 do
+    # sleep 2m
 
     if jq -e '.model_generation | length > 0' "$config" > /dev/null 2>&1; then
         model_dir=$(jq -r '.model_generation.output_model_dir // "model"' "$config")
