@@ -2,8 +2,9 @@
 
 #include "Vec.hpp"
 #include "common.hpp"
-
-
+#include <utility>
+#include <cmath>
+#include "Geometry.hpp"
 class Camera {
 public:
     Camera(int width, int height, myComputeType fov, const Vec3& position, const Vec3& lookAt, const Vec3& up)
@@ -52,7 +53,29 @@ public:
         forward = other.forward;
     }
 
+    std::pair<Triangle, Triangle> generateDetector(const myComputeType detectorWidth, const myComputeType detectorHeight, Vec3 detectorOffset = Vec3(30,0,-10)) const {
+        // Calculate the center of the detector plate in world space
 
+        Vec3 detectorCenter = position + (right * detectorOffset[0]) +( up * detectorOffset[1]) + (forward * detectorOffset[2]);
+
+        // Get the scaled vectors for the corners of the plate using the user-provided dimensions
+        Vec3 halfWidthVec = right * (detectorWidth / 2.0f);
+        Vec3 halfHeightVec = up * (detectorHeight / 2.0f);
+
+        // Calculate the four corner vertices of the detector plate
+        Vec3 topLeft     = detectorCenter - halfWidthVec + halfHeightVec;
+        Vec3 topRight    = detectorCenter + halfWidthVec + halfHeightVec;
+        Vec3 bottomLeft  = detectorCenter - halfWidthVec - halfHeightVec;
+        Vec3 bottomRight = detectorCenter + halfWidthVec - halfHeightVec;
+
+        // Create the two triangles that form the rectangular plate.
+        // The winding order is counter-clockwise when viewed from the camera.
+        Triangle tri1(bottomLeft,topRight, bottomRight);
+        Triangle tri2(bottomLeft, topLeft,topRight );
+        std::cout << bottomLeft << " " <<bottomRight << " "<< topRight << std::endl;
+        std::cout << bottomLeft << " "<<topRight <<" " << topLeft << std::endl;
+        return { tri1, tri2 };
+    }
 
 
 private:

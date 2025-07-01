@@ -53,8 +53,8 @@ if __name__ == "__main__":
     scene_obj.add_geometry(right_wall, geom_name="right_wall")
 
     # detector
-    detector = scene_obj.create_box_with_material([box_width / 25, box_depth / 25, 0], [-10, box_height / 2, box_depth / 2 + detector_distance], "detector")
-    scene_obj.add_geometry(detector, geom_name="detector")
+    # detector = scene_obj.create_box_with_material([box_width / 25, box_depth / 25, 0], [-10, box_height / 2, box_depth / 2 + detector_distance], "detector")
+    # scene_obj.add_geometry(detector, geom_name="detector")
 
     # ground plate
     ground = scene_obj.create_box_with_material([box_width*5, 1, box_depth*5],[0, -0.5 - 1.0, 0], "white")

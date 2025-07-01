@@ -42,6 +42,25 @@ class OBJ_Loader
         return result;
     } 
     
+    void addCamera(Camera* camera = nullptr)
+    {
+        if(camera)
+        {
+
+            int camearMaterailIndex = _globalMaterialsInfoList.size();
+            Vec3 diffuseVec(47.7688, 38.5664, 31.0928);
+            Vec3 specularVec(47.7688, 38.5664, 31.0928);
+            Vec3 emissionVec(47.7688, 38.5664, 31.0928);
+            MaterialInfo camereMat = MaterialInfo(emissionVec,specularVec,diffuseVec);
+            _globalMaterialsInfoList.push_back(camereMat);
+            auto camTri = camera->generateDetector(20,20);
+            _gloabalTranglesResult.push_back(camTri.first);
+            _gloabalTranglesResult.push_back(camTri.second);
+            _globalMaterialIDs.push_back(camearMaterailIndex);
+            _globalMaterialIDs.push_back(camearMaterailIndex);
+            std::cout << camearMaterailIndex << std::endl;
+        }
+    }
 
     void addTriangleObjectFile(std::string objFilePath, std::string objFile)
     {
@@ -81,6 +100,10 @@ class OBJ_Loader
 
                 Triangle tri(vertices[index1], vertices[index2], vertices[index3]);
                 _gloabalTranglesResult.push_back(tri);
+                if( shape.name == "detector")
+                {
+                    std::cout << vertices[index1] << " " << vertices[index1] << " " << vertices[index1] <<std::endl;  
+                }
             }
 
 
@@ -133,9 +156,7 @@ class OBJ_Loader
         {
             Vec3 diffuseVec(materials[i].diffuse[0],materials[i].diffuse[1],materials[i].diffuse[2]);
             Vec3 specularVec(materials[i].specular[0],materials[i].specular[1],materials[i].specular[2]);
-            //Vec3 emissionVec(materials[i].emission[0],materials[i].emission[1],materials[i].emission[2]);
             Vec3 emissionVec(materials[i].ambient[0], materials[i].ambient[1], materials[i].ambient[2]);
-           // std::cout << emissionVec[0] << " "
             MaterialInfo mat = MaterialInfo(emissionVec,specularVec,diffuseVec);
             _globalMaterialsInfoList.push_back(mat);
 

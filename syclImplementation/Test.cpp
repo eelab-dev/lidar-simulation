@@ -47,21 +47,20 @@ int main(int argc, char* argv[]){
   std::string ModelDir = inputFile.substr(0, pos);
   std::string ModelName = inputFile.substr(pos);
 
-  OBJ_Loader loader;
-  loader.addTriangleObjectFile(ModelDir, ModelName);
-  Triangle_OBJ_result TriangleResult = loader.outputTrangleResult();
-
-  Vec3 cameraPosition(20.0f, 274.0f, 250 + detectorDistance + 10); // Example camera position
+  Vec3 cameraPosition(0.0f, 274.0f, 250 + detectorDistance + 10); // Example camera position
   Vec3 lookAt(0.0f, 274.0f, 0.0f); // Look at the center of the Cornell Box
   Vec3 up(0.0f, 1.0f, 0.0f); // Up direction
 
   auto iterationSize = computeAdjustedSize(inputWidth,inputHeight);
   int imageWidth = iterationSize.first;
   int imageHeight = iterationSize.second;
+
+  OBJ_Loader loader;
+  loader.addTriangleObjectFile(ModelDir, ModelName);  
   Camera camera(imageWidth, imageHeight, fov, cameraPosition, lookAt, up);
-
+  loader.addCamera(&camera);
  
-
+Triangle_OBJ_result TriangleResult = loader.outputTrangleResult();
 std::cout << "hello from GPGPU\n" <<std::endl;
 sycl::queue myQueue(sycl::gpu_selector_v);
 

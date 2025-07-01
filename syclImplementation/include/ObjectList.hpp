@@ -3,6 +3,7 @@
 #include "GeometryList.hpp"
 #include "MaterialList.hpp"
 #include "BVHArray.hpp"
+#include "Camera.hpp"
 
 struct Object
 {
@@ -85,10 +86,12 @@ struct ObjectListContent
             }
     }
 
+
     void addObject(std::vector<Triangle> &tris, std::vector<MaterialInfo>& materialInfoList, std::vector<int>& geomIDs)
     {
         addTriangleGeometry(tris);
         addMaterial(materialInfoList);
+
         size_t GeometryListSize = tris.size();
         _objectList = sycl::malloc_shared<Object>(tris.size(), _myQueue);
 
