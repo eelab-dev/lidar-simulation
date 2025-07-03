@@ -95,6 +95,11 @@ do
         input_model_dir=$(jq -r '.simulation_generation.input_model_dir' "$config")
         input_model_dir="${config_dir}/${input_model_dir}"
         input_model_file="${global_prefix}_obj_${i}.obj"
+        if jq -e '.simulation_generation.static_model' "$config" > /dev/null 2>&1; then
+            input_model_file=$(jq -r '.simulation_generation.static_model' "$config")
+        fi
+        
+        
         input_model_file_path="${input_model_dir}/${input_model_file}"
 
         if [  -f "$input_model_file_path" ]; then
@@ -106,8 +111,35 @@ do
             rawData_file="${global_prefix}_rawData_${i}.h5"
             rawData_file_path="${rawData_dir}/${rawData_file}"
 
+
+
             # ✅ Initialize simulation_flag with a leading space
             simulation_flag=""
+
+            # --- NEW LOGIC: Read camera settings from external file ---
+            if jq -e '.simulation_generation.camera_config_file' "$config" > /dev/null 2>&1; then
+                camera_config_path=$(jq -r '.simulation_generation.camera_config_file' "$config")
+                full_camera_config_path="${input_model_dir}/${camera_config_path}"
+
+                echo "INFO: Reading camera setup from ${full_camera_config_path}"
+                if [ -f "$full_camera_config_path" ]; then
+                    # Parse the camera position and look at point from the camera config file
+                    cam_pos_x=$(jq -r '.camera_position[0]' "$full_camera_config_path")
+                    cam_pos_y=$(jq -r '.camera_position[1]' "$full_camera_config_path")
+                    cam_pos_z=$(jq -r '.camera_position[2]' "$full_camera_config_path")
+
+                    look_at_x=$(jq -r '.look_at_point[0]' "$full_camera_config_path")
+                    look_at_y=$(jq -r '.look_at_point[1]' "$full_camera_config_path")
+                    look_at_z=$(jq -r '.look_at_point[2]' "$full_camera_config_path")
+
+                    # Append the new flags to the simulation_flag variable
+                    simulation_flag+=" --cameraPosition ${cam_pos_x} ${cam_pos_y} ${cam_pos_z}"
+                    simulation_flag+=" --lookAt ${look_at_x} ${look_at_y} ${look_at_z}"
+                else
+                    echo "WARNING: camera_config_file specified but not found at '${full_camera_config_path}'. Skipping camera override."
+                fi
+            fi
+
 
             # ✅ Append flags conditionally
             

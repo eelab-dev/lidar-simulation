@@ -29,18 +29,31 @@ int main(int argc, char* argv[]){
   unsigned int seed = 123;  
   float detectorDistance = 1000;
 
-  // Parse flags
-  std::unordered_map<std::string, std::string> args = parseFlags(argc, argv);
+  // // Parse flags
+  // std::unordered_map<std::string, std::string> args = parseFlags(argc, argv);
 
-  // Handle known flags
-  if (args.count("--model")) inputFile = args["--model"];
-  if (args.count("--output")) outputFile = args["--output"];
-  if (args.count("--width")) inputWidth = std::stoi(args["--width"]);
-  if (args.count("--height")) inputHeight = std::stoi(args["--height"]);
-  if (args.count("--fov")) fov = std::stof(args["--fov"]);
-  if (args.count("--ssp")) ssp = std::stoi(args["--ssp"]);
-  if (args.count("--seed")) seed = std::stoi(args["--seed"]);
-  if (args.count("--detectorDistance")) detectorDistance = std::stof(args["--detectorDistance"]);  
+  // // Handle known flags
+  // if (args.count("--model")) inputFile = args["--model"];
+  // if (args.count("--output")) outputFile = args["--output"];
+  // if (args.count("--width")) inputWidth = std::stoi(args["--width"]);
+  // if (args.count("--height")) inputHeight = std::stoi(args["--height"]);
+  // if (args.count("--fov")) fov = std::stof(args["--fov"]);
+  // if (args.count("--ssp")) ssp = std::stoi(args["--ssp"]);
+  // if (args.count("--seed")) seed = std::stoi(args["--seed"]);
+  // if (args.count("--detectorDistance")) detectorDistance = std::stof(args["--detectorDistance"]);  
+
+  // --- Parse Command-Line Arguments ---
+  auto args = parseFlags(argc, argv);
+
+  // Handle single-value flags
+  if (args.count("--model") && !args["--model"].empty()) inputFile = args["--model"][0];
+  if (args.count("--output") && !args["--output"].empty()) outputFile = args["--output"][0];
+  if (args.count("--width") && !args["--width"].empty()) inputWidth = std::stoi(args["--width"][0]);
+  if (args.count("--height") && !args["--height"].empty()) inputHeight = std::stoi(args["--height"][0]);
+  if (args.count("--fov") && !args["--fov"].empty()) fov = std::stof(args["--fov"][0]);
+  if (args.count("--ssp") && !args["--ssp"].empty()) ssp = std::stoi(args["--ssp"][0]);
+  if (args.count("--seed") && !args["--seed"].empty()) seed = std::stoi(args["--seed"][0]);
+  if (args.count("--detectorDistance") && !args["--detectorDistance"].empty()) detectorDistance = std::stof(args["--detectorDistance"][0]);
 
   // Extract directory and file name
   size_t pos = inputFile.find_last_of('/');

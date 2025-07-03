@@ -11,16 +11,37 @@
 #include <oneapi/dpl/execution>
 #include <iostream>
 
-// Extracts --key value pairs from command-line arguments
-std::unordered_map<std::string, std::string> parseFlags(int argc, char* argv[]) {
-    std::unordered_map<std::string, std::string> args;
+// // Extracts --key value pairs from command-line arguments
+// std::unordered_map<std::string, std::string> parseFlags(int argc, char* argv[]) {
+//     std::unordered_map<std::string, std::string> args;
 
-    for (int i = 1; i < argc - 1; ++i) {
-        std::string key = argv[i];
-        if (key.rfind("--", 0) == 0) { // starts with "--"
-            std::string value = argv[i + 1];
-            args[key] = value;
-            ++i; // skip next since it's a value
+//     for (int i = 1; i < argc - 1; ++i) {
+//         std::string key = argv[i];
+//         if (key.rfind("--", 0) == 0) { // starts with "--"
+//             std::string value = argv[i + 1];
+//             args[key] = value;
+//             ++i; // skip next since it's a value
+//         }
+//     }
+
+//     return args;
+// }
+
+
+
+std::unordered_map<std::string, std::vector<std::string>> parseFlags(int argc, char* argv[]) {
+    std::unordered_map<std::string, std::vector<std::string>> args;
+    std::string current_key;
+
+    for (int i = 1; i < argc; ++i) {
+        std::string token = argv[i];
+        if (token.rfind("--", 0) == 0) { // Token starts with "--"
+            current_key = token;
+            // Initialize with an empty vector in case it's a flag with no value
+            args[current_key] = {}; 
+        } else if (!current_key.empty()) {
+            // If we have a key, this token is a value for it
+            args[current_key].push_back(token);
         }
     }
 
