@@ -53,3 +53,5 @@ Cargo.lock
 
 # Misc
 .DS_Store
+animation/*
+animation/model/camera_config_*

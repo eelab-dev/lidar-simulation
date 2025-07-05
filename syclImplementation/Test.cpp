@@ -27,7 +27,8 @@ int main(int argc, char* argv[]){
   float fov = 40.0f; // Field of view in degrees
   int ssp = 500*1000;
   unsigned int seed = 123;  
-  float detectorDistance = 1000;
+  float detectorDistance = 500;
+
 
   // // Parse flags
   // std::unordered_map<std::string, std::string> args = parseFlags(argc, argv);
@@ -55,13 +56,36 @@ int main(int argc, char* argv[]){
   if (args.count("--seed") && !args["--seed"].empty()) seed = std::stoi(args["--seed"][0]);
   if (args.count("--detectorDistance") && !args["--detectorDistance"].empty()) detectorDistance = std::stof(args["--detectorDistance"][0]);
 
+  Vec3 cameraPosition(0.0f, 274.0f, 250 + detectorDistance + 10); // Example camera position
+  Vec3 lookAt(0.0f, 274.0f, 0.0f); // Look at the center of the Cornell Box
+
+    // --- Handle Multi-Value Flags for Camera ---
+    try {
+        if (args.count("--cameraPosition")) {
+            const auto& pos_vals = args["--cameraPosition"];
+            if (pos_vals.size() != 3) {
+                throw std::runtime_error("--cameraPosition requires 3 float values (x y z)");
+            }
+            cameraPosition = Vec3(std::stof(pos_vals[0]), std::stof(pos_vals[1]), std::stof(pos_vals[2]));
+        }
+
+        if (args.count("--lookAt")) {
+            const auto& look_vals = args["--lookAt"];
+            if (look_vals.size() != 3) {
+                throw std::runtime_error("--lookAt requires 3 float values (x y z)");
+            }
+            lookAt = Vec3(std::stof(look_vals[0]), std::stof(look_vals[1]), std::stof(look_vals[2]));
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error parsing arguments: " << e.what() << std::endl;
+    }
+
   // Extract directory and file name
   size_t pos = inputFile.find_last_of('/');
   std::string ModelDir = inputFile.substr(0, pos);
   std::string ModelName = inputFile.substr(pos);
 
-  Vec3 cameraPosition(0.0f, 274.0f, 250 + detectorDistance + 10); // Example camera position
-  Vec3 lookAt(0.0f, 274.0f, 0.0f); // Look at the center of the Cornell Box
+
   Vec3 up(0.0f, 1.0f, 0.0f); // Up direction
 
   auto iterationSize = computeAdjustedSize(inputWidth,inputHeight);

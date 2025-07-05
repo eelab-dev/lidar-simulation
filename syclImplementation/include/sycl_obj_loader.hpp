@@ -58,7 +58,7 @@ class OBJ_Loader
             _gloabalTranglesResult.push_back(camTri.second);
             _globalMaterialIDs.push_back(camearMaterailIndex);
             _globalMaterialIDs.push_back(camearMaterailIndex);
-            std::cout << camearMaterailIndex << std::endl;
+            // std::cout << camearMaterailIndex << std::endl;
         }
     }
 

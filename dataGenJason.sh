@@ -11,7 +11,7 @@ cd "$SCRIPT_DIR" || exit 1
 source .venv/bin/activate
 
 
-config="STM32_54x42x18_Lidar/positive/positive_config.json"
+config="animation/animation_config.json"
 config_dir=$(dirname "$config")
 
 endIndex=$(jq -r '.global_settings.end_index// empty' "$config")
@@ -117,9 +117,24 @@ do
             simulation_flag=""
 
             # --- NEW LOGIC: Read camera settings from external file ---
-            if jq -e '.simulation_generation.camera_config_file' "$config" > /dev/null 2>&1; then
-                camera_config_path=$(jq -r '.simulation_generation.camera_config_file' "$config")
-                full_camera_config_path="${input_model_dir}/${camera_config_path}"
+            if jq -e '.simulation_generation.camera_config' "$config" > /dev/null 2>&1; then
+
+                # Try to get camera_config_prefix, fallback empty if not found
+                camera_config_prefix=$(jq -r '.simulation_generation.camera_config.camera_config_prefix // empty' "$config")
+
+                if [ -n "$camera_config_prefix" ]; then
+                    # If prefix is found, construct camera_config with prefix and index
+                    camera_config="${camera_config_prefix}_${i}.json"
+                else
+                    # Otherwise, use camera_config_file from config
+                    camera_config=$(jq -r '.simulation_generation.camera_config.camera_config_file' "$config")
+                fi           
+                # Check if camera_config is still empty, warn user
+
+                if [ -z "$camera_config" ]; then
+                    echo "[WARNING] camera_config not found in config file. Please check .simulation_generation.camera_config."
+                fi
+                full_camera_config_path="${input_model_dir}/${camera_config}"
 
                 echo "INFO: Reading camera setup from ${full_camera_config_path}"
                 if [ -f "$full_camera_config_path" ]; then
