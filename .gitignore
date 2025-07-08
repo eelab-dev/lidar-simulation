@@ -55,3 +55,4 @@ Cargo.lock
 .DS_Store
 animation/*
 animation/model/camera_config_*
+rustLib/.rustc_info.json

@@ -142,7 +142,6 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
 {
   int i = index[0];
   int j = index[1];
-  Vec3 pixelColor(0.0f, 0.0f, 0.0f);
 
   for (int s = 0; s < ssp; ++s) 
   {
@@ -150,6 +149,10 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
     Vec3 rayDir = cameraAcc[0].getRayDirection(i, j, rng); 
     Ray ray(cameraAcc[0].getPosition(), rayDir); 
     auto tem = sceneAcc[0].doRendering(ray, rng);
+    // out << ray.direction.x << " " << ray.direction.y << " " << ray.direction.z << sycl::endl;
+    // if (tem._collisionCount !=0){
+    //   out << tem._collisionCount<< sycl::endl;
+    // } 
     if(tem._hit)
     {
       
@@ -165,7 +168,7 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
       collision_acc[idx].collisionCount = tem._collisionCount;
       collision_acc[idx].distance = tem._travelDistance;
       collision_acc[idx].collisionLocation = tem._position;
-      collision_acc[idx].collisionDirection = tem._direction;
+      collision_acc[idx].collisionDirection = cameraAcc[0].toCameraBase(tem._direction);
     }
   }
 

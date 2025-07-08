@@ -130,16 +130,18 @@ class syclScene
                 }
      
 
-                const float EPSILON = 1e-4f;
+                const float EPSILON = 1e-5f;
                 Vec3 normal = intersection._normal.normalized();
-                Vec3 offset = normal * EPSILON;
+                // Vec3 offset = normal * EPSILON;
 
-                // Avoid biasing into the surface for transmission rays
-                if (dotProduct(currentRay.direction, normal) > 0.0f) {
-                    offset = -offset;
-                }
+                // // Avoid biasing into the surface for transmission rays
+                // if (dotProduct(currentRay.direction, normal) > 0.0f) {
+                //     offset = -offset;
+                // }
 
-                Vec3 safeOrigin = intersection._position + offset;
+                // Vec3 safeOrigin = intersection._position + offset;
+
+                Vec3 safeOrigin = intersection._position ;
                 Vec3 newDirection = intersectionMaterial->sample(currentRay.direction, normal, rng);
                 currentRay = Ray(safeOrigin, newDirection);           
             }

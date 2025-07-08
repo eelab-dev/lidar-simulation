@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <cmath>
@@ -73,7 +74,6 @@ inline Vec3 crossProduct(const Vec3 &a, const Vec3 &b)
             a.x * b.y - a.y * b.x
     );
 }
-
 
 
 

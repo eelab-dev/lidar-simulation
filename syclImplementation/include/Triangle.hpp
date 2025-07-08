@@ -116,4 +116,25 @@ Intersection Triangle::getIntersection_virtual(const Ray& ray) const
 }
 
 
+#include <iostream>
+
+inline std::ostream& operator<<(std::ostream& os, const Triangle& tri)
+{
+    os << "Triangle:\n";
+    os << "  v1: " << tri._v1 << "\n";
+    os << "  v2: " << tri._v2 << "\n";
+    os << "  v3: " << tri._v3 << "\n";
+    Vec3 e1 = tri._v2 - tri._v1;
+    Vec3 e2 = tri._v3 - tri._v1;
+    Vec3 normal = crossProduct(e1, e2).normalized();
+    float area = crossProduct(e1, e2).length() * 0.5f;
+    os << "  e1: " << e1 << "\n";
+    os << "  e2: " << e2 << "\n";
+    os << "  normal: " << normal << "\n";
+    os << "  area: " << area << "\n";
+    return os;
+}
+
+
+
 

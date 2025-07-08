@@ -246,7 +246,7 @@ class ObjectList
             
         void setObjects(ObjectListContent& content)
         {
-            content.toDevice();
+            //content.toDevice();
             _objectList = content._objectList;
             _objectListSize = content._objectListSize;
             _geometryList.setTriangles(content._triangleList, content._triangleListSize);
@@ -288,7 +288,7 @@ class ObjectList
             return _geometry->getBounds();
         }
 
-        //bool intersect(const Ray& ray){return _geometry->intersect(ray);}
+        // bool intersect(const Ray& ray){return _geometry->intersect(ray);}
         Intersection getIntersection(const Ray& ray, long index) const
         {
             if (index < 0)
@@ -442,7 +442,7 @@ Intersection BVHArray::Intersect(const Ray& ray, const ObjectList* objects) cons
 Intersection BVHArray::getIntersection(const long index, const Ray &ray,
                                        const ObjectList *objects) const {
 
- const float EPSILON = 1e-4f;  // Minimum valid ray distance
+ const float EPSILON = 1e-6f;  // Minimum valid ray distance
   if (!haveNode(index))
     return Intersection();
 

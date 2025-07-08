@@ -88,18 +88,18 @@ def form_average_image(pixels, image_width, image_heigh):
 
 
 def form_histogram_image(pixels, image_width, image_height,bin_number = 25, range_distance = [1000,2500]):
-    illegal_photon = np.empty((image_height, image_width), dtype=object)
-    for i, j in np.ndindex(image_height, image_width):
+    illegal_photon = np.empty((image_width,image_height), dtype=object)
+    for i, j in np.ndindex(image_width,image_height):
         illegal_photon[i, j] = []
-    stamped_histogram = np.zeros((image_height, image_width, bin_number), dtype=int)
-    stamped_collosion = np.zeros((image_height, image_width, bin_number), dtype=float)
+    stamped_histogram = np.zeros((image_width,image_height,bin_number), dtype=int)
+    stamped_collosion = np.zeros((image_width,image_height,bin_number), dtype=float)
 
-    distance_image = np.zeros((image_height, image_width), dtype=np.float32)
+    distance_image = np.zeros((image_width,image_height), dtype=np.float32)
     range_min = range_distance[0]
     range_max = range_distance[1]
     bin_width = (range_max - range_min)/bin_number
-    for i in range(image_height):
-        for j in range(image_width): 
+    for i in range(image_width):
+        for j in range(image_height): 
             photon_number = len(pixels[i][j])
             for k in range(photon_number):
                 distance = pixels[i][j][k][0]

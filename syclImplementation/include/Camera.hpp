@@ -5,6 +5,7 @@
 #include <utility>
 #include <cmath>
 #include "Geometry.hpp"
+#include <iostream>
 class Camera {
 public:
     Camera(int width, int height, myComputeType fov, const Vec3& position, const Vec3& lookAt, const Vec3& up)
@@ -53,7 +54,7 @@ public:
         forward = other.forward;
     }
 
-    std::pair<Triangle, Triangle> generateDetector(const myComputeType detectorWidth, const myComputeType detectorHeight, Vec3 detectorOffset = Vec3(30,0,-10)) const {
+    std::pair<Triangle, Triangle> generateDetector(const myComputeType detectorWidth, const myComputeType detectorHeight, Vec3 detectorOffset = Vec3(30,0,0)) const {
         // Calculate the center of the detector plate in world space
 
         Vec3 detectorCenter = position + (right * detectorOffset[0]) +( up * detectorOffset[1]) + (forward * detectorOffset[2]);
@@ -70,12 +71,30 @@ public:
 
         // Create the two triangles that form the rectangular plate.
         // The winding order is counter-clockwise when viewed from the camera.
-        Triangle tri1(bottomLeft,topRight, bottomRight);
-        Triangle tri2(bottomLeft, topLeft,topRight );
-        std::cout << bottomLeft << " " <<bottomRight << " "<< topRight << std::endl;
-        std::cout << bottomLeft << " "<<topRight <<" " << topLeft << std::endl;
+        // Triangle tri1(bottomLeft,topRight, bottomRight);
+        // Triangle tri2(bottomLeft, topLeft,topRight );
+
+        Triangle tri1(bottomLeft, bottomRight, topRight);
+        Triangle tri2(bottomLeft, topRight, topLeft);
+
+
+        std::cout << detectorCenter << std::endl;
+        std::cout << "forward direction : " << forward << std::endl;
+        std::cout << "right direction : " << right << std::endl;
+        std::cout << "up direction : " << up << std::endl;
+        std::cout << tri1 << std::endl;
         return { tri1, tri2 };
     }
+
+
+    Vec3 toCameraBase(const Vec3 &incomeDirection) const {
+    // Convert world-space direction to camera local basis
+    return Vec3(
+        dotProduct(incomeDirection, right),
+        dotProduct(incomeDirection, up),
+        dotProduct(incomeDirection, forward)
+    );
+}
 
 
 private:
@@ -83,9 +102,29 @@ private:
     myComputeType fov;
     Vec3 position, lookAt, up, right, forward;
 
+    // void updateBasis() {
+    //     forward = (lookAt - position).normalized();
+    //     right = crossProduct(forward, up).normalized();
+    //     up = crossProduct(right, forward).normalized();
+    // }
+    
     void updateBasis() {
-        forward = (lookAt - position).normalized();
-        right = crossProduct(forward, up).normalized();
-        up = crossProduct(right, forward).normalized();
+    Vec3 lookDir = lookAt - position;
+    if (lookDir.length() < 1e-8) {
+        // Avoid NaN
+        return;
     }
+    forward = lookDir.normalized();
+
+    // Project up onto plane orthogonal to forward
+    Vec3 upProjected = up - forward * dotProduct(up, forward);
+    if (upProjected.length() < 1e-8) {
+        // Avoid NaN if up is parallel to forward
+        upProjected = Vec3(0, 1, 0); // or another fallback
+    }
+
+    right = crossProduct(upProjected, forward).normalized();
+    up = crossProduct(forward, right).normalized();
+}
 };
+
