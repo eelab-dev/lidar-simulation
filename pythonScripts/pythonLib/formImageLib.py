@@ -130,7 +130,7 @@ def save_image(image, rectangle=None,imageFileName = "./",distance_range=[2100,3
 
     # Ensure the directory exists
     os.makedirs(os.path.dirname(imageFileName), exist_ok=True)
-    plt.imshow(show_image,cmap=cmap ,vmin = range_min,vmax=range_max ,interpolation='nearest')
+    plt.imshow(show_image.T,cmap=cmap ,vmin = range_min,vmax=range_max ,interpolation='nearest')
     plt.colorbar()
     plt.savefig(imageFileName, format='png', dpi=600, transparent=True)
   

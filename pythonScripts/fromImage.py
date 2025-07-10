@@ -49,12 +49,12 @@ if __name__ == "__main__":
     
     # image = form_image(pixels, image_heigh,image_width)
     image, illegal_photon, stamped_histogram, stamped_collosioin = form_histogram_image(pixels,image_width,image_heigh,bin_number=input_bin_number,range_distance=myRange)
-    stamped_histogram= np.rot90(stamped_histogram, k=-1, axes=(0, 1))
-    stamped_collosioin= np.rot90(stamped_collosioin, k=-1, axes=(0, 1))
-    image = np.rot90(image, k=-1)
-    stamped_histogram = stamped_histogram[::-1, ...]
-    stamped_collosioin = stamped_collosioin[::-1, ...]
-    image = image[::-1, ...]
+    # stamped_histogram= np.rot90(stamped_histogram, k=-1, axes=(0, 1))
+    # stamped_collosioin= np.rot90(stamped_collosioin, k=-1, axes=(0, 1))
+    # image = np.rot90(image, k=-1)
+    # stamped_histogram = stamped_histogram[::-1, ...]
+    # stamped_collosioin = stamped_collosioin[::-1, ...]
+    # image = image[::-1, ...]
 
 
     save_image(image,None,output_image_name,distance_range=myRange)

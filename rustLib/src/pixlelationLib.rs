@@ -110,7 +110,12 @@ impl Detector {
             return;
         }
 
-        let t = self.focal_length.abs() / photon.dz;
+        if (photon.dz > 0.0)
+        {
+            return;
+        }
+
+        let t = (self.focal_length / photon.dz).abs();
         let mut x = t * photon.dx;
         let mut y = t * photon.dy;
 

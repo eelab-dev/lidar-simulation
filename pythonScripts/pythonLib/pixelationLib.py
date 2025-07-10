@@ -53,6 +53,9 @@ class detector:
         if income_photon.collosion == 0:
             return
         # calculate the intersection point
+
+        if (income_photon.dz > 0):
+            return 
         t = np.abs(self.focal_length / income_photon.dz)
         x = t * income_photon.dx
         y = t * income_photon.dy

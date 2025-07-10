@@ -11,9 +11,9 @@ cd "$SCRIPT_DIR" || exit 1
 source .venv/bin/activate
 
 
-config="animation/animation_config.json"
+# config="animation/animation_config.json"
 
-# config="STM32_54x42x18_Lidar/positive/positive_config.json"
+config="STM32_54x42x18_Lidar/positive/positive_config.json"
 config_dir=$(dirname "$config")
 
 endIndex=$(jq -r '.global_settings.end_index// empty' "$config")
