@@ -138,5 +138,10 @@ The generated dataset is located in the folder specified in `TestGenerator.sh`. 
 - If compilation fails, verify that all dependencies are correctly installed
 
 
+## Simulation Demo (GIF Preview)
+
+![Demo](assets/demo.gif)
+
+
 
 
