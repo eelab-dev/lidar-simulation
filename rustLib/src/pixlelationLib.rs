@@ -156,8 +156,9 @@ impl Detector {
             if x >= 0 && y >= 0 &&
             x < self.resolution_width as i32 && y < self.resolution_height as i32 {
 
-                let index_x = x as usize;
+                let mut index_x = x as usize;
                 let index_y = y as usize;
+                index_x = self.resolution_width - index_x - 1;
 
                 self.pixel_array_count[(index_x, index_y)] += 1;
                 self.pixel_array[(index_x, index_y)] += photon.distance;

@@ -176,7 +176,6 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
       collision_acc[idx].collisionDirection = cameraAcc[0].toCameraBase(tem._direction);
       collision_acc[idx].camera_x = i/widthUnit;
       collision_acc[idx].camera_y = j/heightUnit;
-      out <<collision_acc[idx].camera_x<< " " << collision_acc[idx].camera_y  << sycl::endl;
     }
   }
 
