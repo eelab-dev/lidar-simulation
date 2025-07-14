@@ -53,6 +53,8 @@ struct CollisionRecord {
     float distance;
     Vec3 collisionLocation;
     Vec3 collisionDirection;
+    int camera_x = -1;
+    int camera_y = -1;
 };
 
 
@@ -73,7 +75,7 @@ private:
 public:
     explicit HDF5Writer(const std::string& outputFilename,float fov, int height, int width);
     void finalizeFile();
-    void writeRecord(int collisionCount, float distance, Vec3 collisionLocation, Vec3 collisionDirection);
+    void writeRecord(int collisionCount, float distance, Vec3 collisionLocation, Vec3 collisionDirection, int camera_x, int camera_y);
     
     void writeToFile(
         const std::vector<int>& collisionCount,
@@ -111,12 +113,16 @@ void HDF5Writer::initializeFile(float fov = 50, int image_height = 500, int imag
     compType.insertMember("CollisionCount", HOFFSET(CollisionRecord, collisionCount), H5::PredType::NATIVE_INT);
     compType.insertMember("Distance", HOFFSET(CollisionRecord, distance), H5::PredType::NATIVE_FLOAT);
 
+
     hsize_t vec3_dims[1] = {3};
     H5::ArrayType vec3Type(H5::PredType::NATIVE_FLOAT, 1, vec3_dims);
     
     compType.insertMember("CollisionLocation", HOFFSET(CollisionRecord, collisionLocation), vec3Type);
     compType.insertMember("CollisionDirection", HOFFSET(CollisionRecord, collisionDirection), vec3Type);
 
+
+    compType.insertMember("Camera_x", HOFFSET(CollisionRecord, camera_x), H5::PredType::NATIVE_INT);
+    compType.insertMember("Camera_y", HOFFSET(CollisionRecord, camera_y), H5::PredType::NATIVE_INT);
     // Enable chunking (for extendability)
     H5::DSetCreatPropList prop;
     hsize_t chunk_dims[1] = {100}; // Chunk size (can adjust based on expected record rate)
@@ -135,7 +141,7 @@ void HDF5Writer::initializeFile(float fov = 50, int image_height = 500, int imag
 
 
 
-void HDF5Writer::writeRecord(int collisionCount, float distance, Vec3 collisionLocation, Vec3 collisionDirection) {
+void HDF5Writer::writeRecord(int collisionCount, float distance, Vec3 collisionLocation, Vec3 collisionDirection, int camera_x, int camera_y) {
 
     CollisionRecord record;
     record.collisionCount = collisionCount;
@@ -146,6 +152,9 @@ void HDF5Writer::writeRecord(int collisionCount, float distance, Vec3 collisionL
     record.collisionDirection.x = collisionDirection.x;
     record.collisionDirection.y = collisionDirection.y;
     record.collisionDirection.z = collisionDirection.z;
+    record.camera_x = camera_x;
+    record.camera_y = camera_y;
+    
 
     // Extend dataset to accommodate new record
     hsize_t new_size[1] = {current_index + 1};

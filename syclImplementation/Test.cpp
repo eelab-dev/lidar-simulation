@@ -22,10 +22,10 @@ int main(int argc, char* argv[]){
   
   std::string inputFile = "./Model/cornell_box.obj";
   std::string outputFile = "./outputtest.h5";
-  int inputWidth = 500;
-  int inputHeight = 500;
+  int inputWidth = 100;
+  int inputHeight = 100;
   float fov = 40.0f; // Field of view in degrees
-  int ssp = 500*1000;
+  int ssp = 500*1000*25;
   unsigned int seed = 123;  
   float detectorDistance = 500;
 
@@ -91,6 +91,11 @@ int main(int argc, char* argv[]){
   auto iterationSize = computeAdjustedSize(inputWidth,inputHeight);
   int imageWidth = iterationSize.first;
   int imageHeight = iterationSize.second;
+
+  int widthUnit = imageWidth/inputWidth;
+  int heightUnit = imageHeight/inputHeight;
+
+  std::cout << widthUnit << " " << heightUnit << std::endl;
 
   OBJ_Loader loader;
   loader.addTriangleObjectFile(ModelDir, ModelName);  
@@ -169,6 +174,9 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
       collision_acc[idx].distance = tem._travelDistance;
       collision_acc[idx].collisionLocation = tem._position;
       collision_acc[idx].collisionDirection = cameraAcc[0].toCameraBase(tem._direction);
+      collision_acc[idx].camera_x = i/widthUnit;
+      collision_acc[idx].camera_y = j/heightUnit;
+      out <<collision_acc[idx].camera_x<< " " << collision_acc[idx].camera_y  << sycl::endl;
     }
   }
 

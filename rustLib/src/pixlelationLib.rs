@@ -14,13 +14,15 @@ pub struct Ray {
     pub direction_length: f64,
     pub distance: f64,
     pub collision: i32,
+    pub camera_x: i32,
+    pub camera_y: i32,
     pub line_index: usize,
 }
 
 impl Ray {
     pub fn new(x: f64, y: f64, z: f64,
                dx: f64, dy: f64, dz: f64,
-               collision: i32, distance: f64, line_index: usize) -> Self {
+               collision: i32, distance: f64, camera_x:i32, camera_y:i32, line_index: usize) -> Self {
         let length = (dx*dx + dy*dy + dz*dz).sqrt();
         Self {
             x,
@@ -32,6 +34,8 @@ impl Ray {
             direction_length: length,
             distance,
             collision,
+            camera_x,
+            camera_y,
             line_index,
         }
     }
@@ -105,7 +109,7 @@ impl Detector {
         }
     }
 
-    pub fn photon_to_detector(&mut self, photon: &Ray) {
+    pub fn flashLidar_photon_to_detector(&mut self, photon: &Ray) {
         if photon.collision == 0 {
             return;
         }
@@ -135,6 +139,39 @@ impl Detector {
         }
 
     }
+
+    pub fn scanLidar_photon_to_detector(&mut self, photon: &Ray) {
+            if photon.collision == 0 {
+                return;
+            }
+
+            if (photon.dz > 0.0)
+            {
+                return;
+            }
+
+            let x = photon.camera_x;
+            let y = photon.camera_y;
+
+            if x >= 0 && y >= 0 &&
+            x < self.resolution_width as i32 && y < self.resolution_height as i32 {
+
+                let index_x = x as usize;
+                let index_y = y as usize;
+
+                self.pixel_array_count[(index_x, index_y)] += 1;
+                self.pixel_array[(index_x, index_y)] += photon.distance;
+                self.pixel_output_array[index_x][index_y].push((photon.distance as f32, photon.collision));
+
+                self.min_distance = self.min_distance.min(photon.distance);
+                self.max_distance = self.max_distance.max(photon.distance);
+            }
+    }
+
+    
+
+
+
 
     pub fn generate_depth_image(&mut self) {
         for x in 0..self.resolution_width {
@@ -201,6 +238,8 @@ pub struct CollisionRecord {
     pub Distance: f64,
     pub CollisionLocation: [f64; 3],
     pub CollisionDirection: [f64; 3],
+    pub Camera_x: i32,
+    pub Camera_y: i32,
 }
 
 pub fn read_raw_data<P: AsRef<std::path::Path>>(file_name: P) -> (Vec<Ray>, Vec<FailedRayRecord>) {
@@ -243,6 +282,8 @@ pub fn read_raw_data<P: AsRef<std::path::Path>>(file_name: P) -> (Vec<Ray>, Vec<
                     rec.CollisionDirection[2],
                     rec.CollisionCount,
                     rec.Distance,
+                    rec.Camera_x,
+                    rec.Camera_y,
                     i,
                 )
             }) {
