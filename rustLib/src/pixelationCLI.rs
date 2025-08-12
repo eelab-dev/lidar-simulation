@@ -74,7 +74,7 @@ fn main() -> hdf5::Result<()> {
 
 
     for photon in &photons {
-        detector.scanLidar_photon_to_detector(photon);
+        detector.flashLidar_photon_to_detector(photon);
     }
     detector.generate_depth_image();
     detector.output_to_file(output_file.clone())?;

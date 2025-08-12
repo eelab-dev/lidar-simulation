@@ -1,6 +1,7 @@
 import trimesh
 import numpy as np
 import pywavefront
+import json
 class scene:
     def __init__(self, materials):
         self._scene = trimesh.Scene()
@@ -114,3 +115,35 @@ class scene:
             instance.add_geometry(geom, geom_name=name)
 
         return instance
+
+
+
+def generate_camera_json(camera_position, look_at_point, filename="camera_config.json",detector_width=None, detector_height=None):
+    """
+    Generate a camera JSON file with variable camera_position and look_at_point.
+
+    Args:
+        camera_position (list or tuple): [x, y, z] camera coordinates.
+        look_at_point (list or tuple): [x, y, z] target coordinates to look at.
+        filename (str): Output JSON filename.
+    """
+    # Validate inputs
+    for name, value in [("camera_position", camera_position), ("look_at_point", look_at_point)]:
+        if not (isinstance(value, (list, tuple)) and len(value) == 3):
+            raise ValueError(f"{name} must be a list or tuple of three floats (x, y, z).")
+
+    # Structure data
+    data = {
+        "camera_position": list(map(float, camera_position)),
+        "look_at_point": list(map(float, look_at_point))
+    }
+    
+    if detector_width is not None:
+        data["detector_width"] = float(detector_width)
+    if detector_height is not None:
+        data["detector_height"] = float(detector_height)
+
+    # Write JSON to file
+    with open(filename, "w") as f:
+        json.dump(data, f, indent=4)
+    print(f"[INFO] JSON file '{filename}' generated successfully.")

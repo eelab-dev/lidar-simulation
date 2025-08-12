@@ -13,7 +13,7 @@ source .venv/bin/activate
 
 # config="animation/animation_config.json"
 
-config="STM32_54x42x18_Lidar/positive/positive_config.json"
+config="ADS6311/positive/ADS_positive.json"
 config_dir=$(dirname "$config")
 
 endIndex=$(jq -r '.global_settings.end_index// empty' "$config")
@@ -42,6 +42,37 @@ fi
 for ((i=startIndex;i<=endIndex+ iteration;i++))
 do
     # sleep 2m
+    if jq -e '.camera_setting | length > 0' "$config" > /dev/null 2>&1; then
+        echo "[INFO] Camera setting found in config."
+
+        output_camera_dir=$(jq -r '.camera_setting.output_model_dir // "camera"' "$config")
+
+        detectorWidth=$(jq -r '.camera_setting.detectorWidth // 20' "$config")
+        detectorHeight=$(jq -r '.camera_setting.detectorHeight// 20' "$config")
+        output_camera_dir="${config_dir}/${output_camera_dir}"
+
+        mkdir -p "$output_camera_dir"
+        output_camera_file="${global_prefix}_camera_${i}.json"
+        output_camera_file_path="${output_camera_dir}/${output_camera_file}"
+        # Extract camera position and look_at
+        camera_position=$(jq -r '.camera_setting.location | @sh' "$config")
+        look_at_point=$(jq -r '.camera_setting.look_at | @sh' "$config")
+        # Append simulation flags
+        simulation_flag=""
+        simulation_flag+=" --generate_camera"
+        simulation_flag+=" --camera_location ${camera_position}"
+        simulation_flag+=" --look_at ${look_at_point}"
+        simulation_flag+=" --camera_file ${output_camera_file_path}" 
+        simulation_flag+=" --detector_width ${detectorWidth}"
+        simulation_flag+=" --detector_height ${detectorHeight}"
+
+
+        python3 pythonScripts/generateCamera.py \
+        $simulation_flag || { 
+        echo "Error running scenGen.py";
+        exit 1; }
+
+    fi
 
     if jq -e '.model_generation | length > 0' "$config" > /dev/null 2>&1; then
         model_dir=$(jq -r '.model_generation.output_model_dir // "model"' "$config")
@@ -121,22 +152,23 @@ do
             # --- NEW LOGIC: Read camera settings from external file ---
             if jq -e '.simulation_generation.camera_config' "$config" > /dev/null 2>&1; then
 
+                input_camera_dir=$(jq -r '.simulation_generation.camera_config.camera_dir // "camera"' "$config")
+                input_camera_dir="${config_dir}/${input_camera_dir}"
                 # Try to get camera_config_prefix, fallback empty if not found
                 camera_config_prefix=$(jq -r '.simulation_generation.camera_config.camera_config_prefix // empty' "$config")
+                static_camera_file=$(jq -r '.simulation_generation.camera_config.static_camera_config // empty' "$config")
+                
+                itera_camera_file="${global_prefix}_${camera_config_prefix}_${i}.json"
 
-                if [ -n "$camera_config_prefix" ]; then
-                    # If prefix is found, construct camera_config with prefix and index
-                    camera_config="${camera_config_prefix}_${i}.json"
+                if [[ -n "$camera_config_prefix" && -f "${input_camera_dir}/${itera_camera_file}" ]]; then
+                    full_camera_config_path="${input_camera_dir}/${itera_camera_file}"
+                    echo "Using prefix config: $config_file_path"
+                elif [[ -n "$static_camera_config" && -f "${input_camera_dir}/${static_camera_config}" ]]; then
+                    full_camera_config_path="${input_camera_dir}/${static_camera_config}"
+                    echo "Using static config: $config_file_path"
                 else
-                    # Otherwise, use camera_config_file from config
-                    camera_config=$(jq -r '.simulation_generation.camera_config.camera_config_file' "$config")
-                fi           
-                # Check if camera_config is still empty, warn user
-
-                if [ -z "$camera_config" ]; then
-                    echo "[WARNING] camera_config not found in config file. Please check .simulation_generation.camera_config."
+                    echo "[ERROR] No valid camera config found for ${input_camera_dir}/${itera_camera_file}."
                 fi
-                full_camera_config_path="${input_model_dir}/${camera_config}"
 
                 echo "INFO: Reading camera setup from ${full_camera_config_path}"
                 if [ -f "$full_camera_config_path" ]; then
@@ -149,9 +181,19 @@ do
                     look_at_y=$(jq -r '.look_at_point[1]' "$full_camera_config_path")
                     look_at_z=$(jq -r '.look_at_point[2]' "$full_camera_config_path")
 
+                    # Optional: Extract detector dimensions if they exist
+                    detector_width=$(jq -r '.detector_width // empty' "$full_camera_config_path")
+                    detector_height=$(jq -r '.detector_height // empty' "$full_camera_config_path")
+
                     # Append the new flags to the simulation_flag variable
                     simulation_flag+=" --cameraPosition ${cam_pos_x} ${cam_pos_y} ${cam_pos_z}"
                     simulation_flag+=" --lookAt ${look_at_x} ${look_at_y} ${look_at_z}"
+
+                    # Conditionally append detector size if found
+                    if [[ -n "$detector_width" && -n "$detector_height" ]]; then
+                        simulation_flag+=" --detectorWidth ${detector_width}"
+                        simulation_flag+=" --detectorHeight ${detector_height}"
+                    fi
                 else
                     echo "WARNING: camera_config_file specified but not found at '${full_camera_config_path}'. Skipping camera override."
                 fi

@@ -8,14 +8,25 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Export a Cornell Box scene to OBJ format.")
     parser.add_argument("-o", "--output_file", type=str, default="cornell_box.obj", help="Output OBJ file path")
     parser.add_argument("--detectorDistance", type=float, default = 1000 , help = "distance from detector to the ")
-
+    parser.add_argument("--generate_camera", action="store_true", help="Flag to indicate camera generation")
+    parser.add_argument("--camera_location", nargs=3, type=float, help="Camera location coordinates (x y z)")
+    parser.add_argument("--look_at", nargs=3, type=float, help="Camera look-at coordinates (x y z)")
+    parser.add_argument("--camera_file", type=str, help="Path to generated camera JSON file")    
     output_file = "cornell_box.obj"
     detector_distance = 1000
     args = parser.parse_args()
     if args.output_file:
         output_file = args.output_file
-    if args.detectorDistance:
-        detector_distance = args.detectorDistance
+    if args.generate_camera:
+        camera_output_file = args.camera_file
+        camear_location = args.camera_location
+        camear_look = args.look_at
+        generate_camera_json(camera_position=camear_location,look_at_point=camear_look,filename=camera_output_file)
+
+
+
+
+
 
     # Material properties
     materials = {
@@ -27,29 +38,30 @@ if __name__ == "__main__":
     }
 
     # Dimensions
-    box_width, box_height, box_depth = 500, 500, 500 
+    box_width, box_height, box_depth = 500, 500, 500
+    wall_width = 20  
 
     # Create scene object
     scene_obj = scene(materials)
 
     # Add floor
-    floor = scene_obj.create_box_with_material([box_width, 1, box_depth], [0, -0.5, 0], "white")
+    floor = scene_obj.create_box_with_material([box_width, wall_width, box_depth], [0, -0.5* wall_width, 0], "white")
     scene_obj.add_geometry(floor, geom_name="floor")
 
     # Add ceiling
-    ceiling = scene_obj.create_box_with_material([box_width, 1, box_depth], [0, box_height - 0.5, 0], "white")
+    ceiling = scene_obj.create_box_with_material([box_width, wall_width, box_depth], [0, box_height - 0.5 * wall_width, 0], "white")
     scene_obj.add_geometry(ceiling, geom_name="ceiling")
 
     # Add back wall
-    back_wall = scene_obj.create_box_with_material([box_width, box_height, 1], [0, box_height / 2 - 0.5, -box_depth / 2], "white")
+    back_wall = scene_obj.create_box_with_material([box_width, box_height, wall_width], [0, box_height / 2 - 0.5 * wall_width, -box_depth / 2], "white")
     scene_obj.add_geometry(back_wall, geom_name="back_wall")
 
     # Add left wall (Red)
-    left_wall = scene_obj.create_box_with_material([1, box_height, box_depth], [-box_width / 2, box_height / 2 - 0.5, 0], "red")
+    left_wall = scene_obj.create_box_with_material([wall_width, box_height, box_depth], [-box_width / 2, box_height / 2 - 0.5 * wall_width, 0], "red")
     scene_obj.add_geometry(left_wall, geom_name="left_wall")
 
     # Add right wall (Green)
-    right_wall = scene_obj.create_box_with_material([1, box_height, box_depth], [box_width / 2, box_height / 2 - 0.5, 0], "green")
+    right_wall = scene_obj.create_box_with_material([wall_width, box_height, box_depth], [box_width / 2, box_height / 2 - 0.5 * wall_width, 0], "green")
     scene_obj.add_geometry(right_wall, geom_name="right_wall")
 
     # detector

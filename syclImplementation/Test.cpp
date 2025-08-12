@@ -10,10 +10,8 @@
 #include "common.hpp"
 #include "Utility.hpp"
 #include "FileProcessor.hpp"
-
 #include <chrono>
 #include <sycl/sycl.hpp>
-
 #include "syclScene.hpp" 
 #include <filesystem>
 
@@ -27,9 +25,13 @@ int main(int argc, char* argv[]){
   float fov = 40.0f; // Field of view in degrees
   int ssp = 500*1000*25;
   unsigned int seed = 123;  
-  float detectorDistance = 500;
+  float detectorDistance = 560;
+  float detectorWidth = 20;
+  float detectorHeight = 20;
+  myComputeType delay_mean = 44.52;
+  myComputeType delay_std = 195;
 
-
+  delay_std = 395;
   // // Parse flags
   // std::unordered_map<std::string, std::string> args = parseFlags(argc, argv);
 
@@ -56,7 +58,10 @@ int main(int argc, char* argv[]){
   if (args.count("--seed") && !args["--seed"].empty()) seed = std::stoi(args["--seed"][0]);
   if (args.count("--detectorDistance") && !args["--detectorDistance"].empty()) detectorDistance = std::stof(args["--detectorDistance"][0]);
 
-  Vec3 cameraPosition(0.0f, 274.0f, 250 + detectorDistance + 10); // Example camera position
+  if (args.count("--detectorWidth") && !args["--detectorWidth"].empty()) detectorWidth= std::stof(args["--detectorWidth"][0]);
+  if (args.count("--detectorHeight") && !args["--detectorHeight"].empty()) detectorHeight= std::stof(args["--detectorHeight"][0]);
+  
+  Vec3 cameraPosition(0.0f, 330.0f, 250 + detectorDistance + 10); // Example camera position
   Vec3 lookAt(0.0f, 274.0f, 0.0f); // Look at the center of the Cornell Box
 
     // --- Handle Multi-Value Flags for Camera ---
@@ -99,7 +104,7 @@ int main(int argc, char* argv[]){
 
   OBJ_Loader loader;
   loader.addTriangleObjectFile(ModelDir, ModelName);  
-  Camera camera(imageWidth, imageHeight, fov, cameraPosition, lookAt, up);
+  Camera camera(imageWidth, imageHeight, fov, cameraPosition, lookAt, up, detectorWidth, detectorHeight);
   loader.addCamera(&camera);
  
 Triangle_OBJ_result TriangleResult = loader.outputTrangleResult();
@@ -153,7 +158,9 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
     RNG rng(seed + i + j * imageWidth + s *ssp);
     Vec3 rayDir = cameraAcc[0].getRayDirection(i, j, rng); 
     Ray ray(cameraAcc[0].getPosition(), rayDir); 
-    auto tem = sceneAcc[0].doRendering(ray, rng);
+    myComputeType delay_distance = sample_delay_distance(delay_mean,delay_std,rng);
+    auto tem = sceneAcc[0].doRendering(ray, rng, delay_distance);
+    
     // out << ray.direction.x << " " << ray.direction.y << " " << ray.direction.z << sycl::endl;
     // if (tem._collisionCount !=0){
     //   out << tem._collisionCount<< sycl::endl;

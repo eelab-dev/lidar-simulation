@@ -8,23 +8,23 @@ import h5py
 
 
 depthmap_colors = np.array([
-    [0.0, 0.0, 0.5, 1.0],  # Dark Blue
-    [0.0, 0.0, 1.0, 1.0],  # Blue
-    [0.0, 0.5, 1.0, 1.0],  # Sky Blue
-    [0.0, 1.0, 1.0, 1.0],  # Cyan
-    [0.0, 0.75, 0.5, 1.0], # Turquoise
-    [0.0, 1.0, 0.5, 1.0],  # Spring Green
-    [0.0, 1.0, 0.0, 1.0],  # Green
-    [0.5, 1.0, 0.0, 1.0],  # Light Green
-    [0.8, 1.0, 0.2, 1.0],  # Yellow-Green
-    [1.0, 1.0, 0.0, 1.0],  # Yellow
-    [1.0, 0.84, 0.0, 1.0], # Gold
-    [1.0, 0.65, 0.0, 1.0], # Orange
-    [1.0, 0.55, 0.0, 1.0], # Dark Orange
-    [1.0, 0.3, 0.0, 1.0],  # Vermilion
-    [1.0, 0.0, 0.0, 1.0],  # Red
-    [0.85, 0.0, 0.0, 1.0], # Crimson
-    [0.55, 0.0, 0.0, 1.0]  # Dark Red
+    [0.55, 0.0, 0.0, 1.0],  # Dark Red
+    [0.85, 0.0, 0.0, 1.0],  # Crimson
+    [1.0, 0.0, 0.0, 1.0],   # Red
+    [1.0, 0.3, 0.0, 1.0],   # Vermilion
+    [1.0, 0.55, 0.0, 1.0],  # Dark Orange
+    [1.0, 0.65, 0.0, 1.0],  # Orange
+    [1.0, 0.84, 0.0, 1.0],  # Gold
+    [1.0, 1.0, 0.0, 1.0],   # Yellow
+    [0.8, 1.0, 0.2, 1.0],   # Yellow-Green
+    [0.5, 1.0, 0.0, 1.0],   # Light Green
+    [0.0, 1.0, 0.0, 1.0],   # Green
+    [0.0, 1.0, 0.5, 1.0],   # Spring Green
+    [0.0, 0.75, 0.5, 1.0],  # Turquoise
+    [0.0, 1.0, 1.0, 1.0],   # Cyan
+    [0.0, 0.5, 1.0, 1.0],   # Sky Blue
+    [0.0, 0.0, 1.0, 1.0],   # Blue
+    [0.0, 0.0, 0.5, 1.0],   # Dark Blue
 ], dtype=np.float32)
 
 # Normalize the colors for LinearSegmentedColormap
@@ -70,7 +70,11 @@ def get_histogram(pixels, rectangle):
                 result.append(pixels[x+i][y+j][k][0])
     return result
 
-
+def crop_image(left_index,right_index,bottom_index,top_index,input_histogarm,input_collosion):
+    crop_histogram = input_histogarm[left_index:right_index, bottom_index:top_index, :]
+    crop_collosion = input_collosion[left_index:right_index, bottom_index:top_index, :]
+    width,height,bin_width = crop_histogram.shape
+    return width, height, bin_width, crop_histogram, crop_collosion
 
 def form_average_image(pixels, image_width, image_heigh):
     # form the image from the pixels
@@ -97,6 +101,7 @@ def form_histogram_image(pixels, image_width, image_height,bin_number = 25, rang
     distance_image = np.zeros((image_width,image_height), dtype=np.float32)
     range_min = range_distance[0]
     range_max = range_distance[1]
+    print(range_min)
     bin_width = (range_max - range_min)/bin_number
     for i in range(image_width):
         for j in range(image_height): 
@@ -130,7 +135,7 @@ def save_image(image, rectangle=None,imageFileName = "./",distance_range=[2100,3
 
     # Ensure the directory exists
     os.makedirs(os.path.dirname(imageFileName), exist_ok=True)
-    plt.imshow(show_image.T,cmap=cmap ,vmin = range_min,vmax=range_max ,interpolation='nearest')
+    plt.imshow(show_image.T,cmap=cmap ,origin='lower',vmin = range_min,vmax=range_max ,interpolation='nearest')
     plt.colorbar()
     plt.savefig(imageFileName, format='png', dpi=600, transparent=True)
   
@@ -155,6 +160,38 @@ def display_image(image, rectangle=None,distance_range = [2100,3000]):
     plt.colorbar()
     # plt.savefig(imageFileName, format='png', dpi=600, transparent=True)
     plt.show()
+
+
+
+def display_image_fromH5(filename):
+
+
+    with h5py.File(filename, 'r') as h5f:
+        stamped_histogram = h5f["stamped_histogram"][:]
+        range_max = h5f.attrs["range_max"]
+        range_min = h5f.attrs["range_min"]
+        height, width,bin_num = stamped_histogram.shape
+        print(stamped_histogram.shape)
+        bin_width= (range_max - range_min) / bin_num
+        bin_width = 1
+        range_min = 0
+        range_max = bin_num
+        depthImage= np.zeros((height, width), dtype=np.float32)
+        for i in range(height):
+            for j in range(width):
+                max_bin_index = np.argmax(stamped_histogram[i, j])
+                if stamped_histogram[i, j, max_bin_index] > 0:
+                    depthImage[i, j] = range_min + (max_bin_index + 0.5) * bin_width
+        depthmap = mcolors.LinearSegmentedColormap.from_list('depth_cmap', colors, N=256)
+        cmap = depthmap
+        cmap.set_bad(color='black')
+        
+        displayImage = np.ma.masked_where((depthImage == 0), depthImage)
+        plt.imshow(displayImage.T,cmap=cmap ,interpolation='nearest',origin='lower',vmin=range_min, vmax=range_max)
+        plt.colorbar()
+        plt.show()
+        return stamped_histogram
+
 
 
 def save_histogram_to_h5(filename, stamped_histogram, stamped_collosion,

@@ -2,6 +2,7 @@
 #include <cmath>
 #include <limits>
 #include <TypeDefine.hpp>
+#include <random>
 
 #include <oneapi/dpl/random>
 typedef oneapi::dpl::minstd_rand RNG;
@@ -24,6 +25,16 @@ myComputeType get_random_float(RNG &rng)
 {
     oneapi::dpl::uniform_real_distribution<myComputeType> distribution(0.f, 1.f);
     return distribution(rng);
+}
+
+myComputeType sample_delay_distance( myComputeType mean_m, myComputeType std_m, RNG &rng) 
+{
+
+
+    oneapi::dpl::uniform_real_distribution<myComputeType> distribution(mean_m, std_m);
+
+    return distribution(rng);
+
 }
 
 inline Vec3 toWorld(const Vec3 &a, const Vec3 &N){

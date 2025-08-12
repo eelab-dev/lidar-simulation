@@ -8,8 +8,10 @@
 #include <iostream>
 class Camera {
 public:
-    Camera(int width, int height, myComputeType fov, const Vec3& position, const Vec3& lookAt, const Vec3& up)
-        : width(width), height(height), fov(fov), position(position), lookAt(lookAt), up(up) {
+    float detectorWidth;
+    float detectorHeight;
+    Camera(int width, int height, myComputeType fov, const Vec3& position, const Vec3& lookAt, const Vec3& up, float detectorWidth = 20, float detectorHeight = 20)
+        : width(width), height(height), fov(fov), position(position), lookAt(lookAt), up(up), detectorWidth(detectorWidth) ,detectorHeight(detectorHeight) {
         updateBasis();
     }
 
@@ -43,18 +45,9 @@ public:
         return rayDir;
     }
 
-    Camera(const Camera& other){
-        width = other.width;
-        height = other.height;
-        fov = other.fov;
-        position = other.position;
-        lookAt = other.lookAt;
-        up = other.up;
-        right = other.right;
-        forward = other.forward;
-    }
 
-    std::pair<Triangle, Triangle> generateDetector(const myComputeType detectorWidth, const myComputeType detectorHeight, Vec3 detectorOffset = Vec3(30,0,0)) const {
+
+    std::pair<Triangle, Triangle> generateDetector(const myComputeType detectorWidth, const myComputeType detectorHeight, Vec3 detectorOffset = Vec3(5,0,0)) const {
         // Calculate the center of the detector plate in world space
 
         Vec3 detectorCenter = position + (right * detectorOffset[0]) +( up * detectorOffset[1]) + (forward * detectorOffset[2]);

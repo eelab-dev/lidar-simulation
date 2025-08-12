@@ -53,7 +53,7 @@ class OBJ_Loader
             Vec3 emissionVec(47.7688, 38.5664, 31.0928);
             MaterialInfo camereMat = MaterialInfo(emissionVec,specularVec,diffuseVec);
             _globalMaterialsInfoList.push_back(camereMat);
-            auto camTri = camera->generateDetector(20,20);
+            auto camTri = camera->generateDetector(camera->detectorWidth,camera->detectorHeight);
             _gloabalTranglesResult.push_back(camTri.first);
             _gloabalTranglesResult.push_back(camTri.second);
             _globalMaterialIDs.push_back(camearMaterailIndex);
