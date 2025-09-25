@@ -118,7 +118,7 @@ class scene:
 
 
 
-def generate_camera_json(camera_position, look_at_point, filename="camera_config.json",detector_width=None, detector_height=None):
+def generate_camera_json(camera_position, look_at_point, filename="camera_config.json",detector_width=None, detector_height=None, delay_mean=None, delay_std=None):
     """
     Generate a camera JSON file with variable camera_position and look_at_point.
 
@@ -142,6 +142,10 @@ def generate_camera_json(camera_position, look_at_point, filename="camera_config
         data["detector_width"] = float(detector_width)
     if detector_height is not None:
         data["detector_height"] = float(detector_height)
+    if delay_mean is not None:
+        data["delay_mean"] = float(delay_mean)
+    if delay_std is not None:
+        data["delay_std"] = float(delay_std)
 
     # Write JSON to file
     with open(filename, "w") as f:

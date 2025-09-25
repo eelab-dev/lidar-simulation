@@ -158,6 +158,26 @@ def read_raw_data(file_name):
 
     return photons, failed_lines
  
+def read_emission_delay(file_name):
+    """Reads raw photon data from an HDF5 file and returns a list of Ray objects."""
+
+    try:
+        with h5py.File(file_name, 'r') as h5file:
+            # Check if dataset exists
+            if "CollisionData" not in h5file:
+                raise ValueError("Dataset 'CollisionData' is missing in the HDF5 file")
+
+            dataset = h5file["CollisionData"]
+
+            # Read structured data
+            emission_delay = dataset["emission_delay"][:]
+            return np.array(emission_delay)
+
+
+    except Exception as e:
+        print(f"Error opening HDF5 file: {e}")
+        return np.array([])
+
 def read_file_parameter(h5_filename):
     with h5py.File(h5_filename, 'r') as f:
         height = int(f.attrs['ImageHeight'])

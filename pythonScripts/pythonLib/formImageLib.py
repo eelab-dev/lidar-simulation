@@ -5,6 +5,7 @@ import matplotlib.patches as mpatches
 import sys
 import os
 import h5py
+import random
 
 
 depthmap_colors = np.array([
@@ -145,6 +146,7 @@ def save_image(image, rectangle=None,imageFileName = "./",distance_range=[2100,3
 def display_image(image, rectangle=None,distance_range = [2100,3000]):
     # display the image
     # Create the colormap
+
     depthmap = mcolors.LinearSegmentedColormap.from_list('depth_cmap', colors, N=256)
     cmap = depthmap
     cmap.set_bad(color='black')
@@ -152,11 +154,13 @@ def display_image(image, rectangle=None,distance_range = [2100,3000]):
     range_min = distance_range[0]
     range_max = distance_range[1]
     show_image = np.ma.masked_where((image == 0), image)
-
+    # bin_num = 15
+    # range_min = 0
+    # range_max = bin_num 
 
     # Ensure the directory exists
     # os.makedirs(os.path.dirname(imageFileName), exist_ok=True)
-    plt.imshow(show_image,cmap=cmap,vmin = range_min,vmax=range_max ,interpolation='nearest')
+    plt.imshow(show_image.T,origin = 'lower' ,cmap=cmap,vmin = range_min,vmax=range_max ,interpolation='nearest')
     plt.colorbar()
     # plt.savefig(imageFileName, format='png', dpi=600, transparent=True)
     plt.show()
@@ -245,3 +249,48 @@ def read_histogram_from_h5(filename):
         }
 
     return stamped_histogram, stamped_collosion, metadata
+
+
+def dead_time_simulation(real_photon_num=5000*2.37*10e5 * 5000 * 0.005, pluse_train_num = 5000, simulated_photon= None, dead_time = 35,imageWidth = 50,imageHeight = 50):
+    # simulated_photon_num = sum(len(row) for layer in simulated_photon for row in layer)
+    simulated_photon_num = 30000 * 200000 * 1
+    simulated_pluse_train = int(simulated_photon_num / real_photon_num * pluse_train_num)
+    speed_of_light = 3e8
+    discard_count = 0
+    accept_count = 0
+
+    # print(simulated_pluse_train)
+    pixel_output_array = [[[] for _ in range(imageHeight)] for _ in range(imageWidth)]
+
+    # Traverse the 3D list
+    for y, row in enumerate(simulated_photon):         # loop over height
+        for x, entries in enumerate(row):              # loop over width
+            if entries:
+                last_photon_time_array = [None] * simulated_pluse_train
+                for entrie in entries:
+                    arrive_time = entrie[0]/1000 / speed_of_light * 1e12
+                    pluse_index = random.randrange(simulated_pluse_train)
+                    if last_photon_time_array[pluse_index] == None:
+                        last_photon_time_array[pluse_index] = arrive_time  
+                        pixel_output_array[y][x].append(entrie)
+                        accept_count = accept_count + 1
+                    else:
+                        last_time = last_photon_time_array[pluse_index] 
+                        # first_time = True
+                        # if first_time:
+                        #     print(arrive_time)
+                        #     first_time = False
+                        if last_time + dead_time > arrive_time:
+                            discard_count = discard_count + 1
+                        else:
+                            accept_count = accept_count + 1
+                            pixel_output_array[y][x].append(entrie)
+                            last_photon_time_array[pluse_index] = arrive_time
+    return pixel_output_array,discard_count,accept_count
+
+
+
+
+
+
+                

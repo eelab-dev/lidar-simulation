@@ -38,30 +38,31 @@ if __name__ == "__main__":
     }
 
     # Dimensions
-    box_width, box_height, box_depth = 500, 500, 500
-    wall_width = 20  
+
+    box_width, box_height, box_depth = 512, 512, 512
+    wall_width = 7 
 
     # Create scene object
     scene_obj = scene(materials)
 
     # Add floor
-    floor = scene_obj.create_box_with_material([box_width, wall_width, box_depth], [0, -0.5* wall_width, 0], "white")
+    floor = scene_obj.create_box_with_material([box_width, wall_width, box_depth], [0, 0.5* wall_width, 0], "white")
     scene_obj.add_geometry(floor, geom_name="floor")
 
     # Add ceiling
-    ceiling = scene_obj.create_box_with_material([box_width, wall_width, box_depth], [0, box_height - 0.5 * wall_width, 0], "white")
+    ceiling = scene_obj.create_box_with_material([box_width, wall_width, box_depth], [0, box_height + 0.5 * wall_width, 0], "white")
     scene_obj.add_geometry(ceiling, geom_name="ceiling")
 
     # Add back wall
-    back_wall = scene_obj.create_box_with_material([box_width, box_height, wall_width], [0, box_height / 2 - 0.5 * wall_width, -box_depth / 2], "white")
+    back_wall = scene_obj.create_box_with_material([box_width, box_height + wall_width, wall_width], [0, box_height / 2 + 0.5 * wall_width, -box_depth / 2], "white")
     scene_obj.add_geometry(back_wall, geom_name="back_wall")
 
     # Add left wall (Red)
-    left_wall = scene_obj.create_box_with_material([wall_width, box_height, box_depth], [-box_width / 2, box_height / 2 - 0.5 * wall_width, 0], "red")
+    left_wall = scene_obj.create_box_with_material([wall_width, box_height + wall_width, box_depth], [-box_width / 2, box_height / 2 + 0.5 * wall_width, 0], "red")
     scene_obj.add_geometry(left_wall, geom_name="left_wall")
 
     # Add right wall (Green)
-    right_wall = scene_obj.create_box_with_material([wall_width, box_height, box_depth], [box_width / 2, box_height / 2 - 0.5 * wall_width, 0], "green")
+    right_wall = scene_obj.create_box_with_material([wall_width, box_height + wall_width, box_depth], [box_width / 2, box_height / 2 + 0.5 * wall_width, 0], "green")
     scene_obj.add_geometry(right_wall, geom_name="right_wall")
 
     # detector
@@ -69,31 +70,34 @@ if __name__ == "__main__":
     # scene_obj.add_geometry(detector, geom_name="detector")
 
     # ground plate
-    ground = scene_obj.create_box_with_material([box_width*5, 1, box_depth*5],[0, -0.5 - 1.0, 0], "white")
+    ground = scene_obj.create_box_with_material([box_width*5, 1, box_depth*5],[0, 0, 0], "white")
     scene_obj.add_geometry(ground, geom_name="ground")
 
     # wall plate
-    wall = scene_obj.create_box_with_material([box_width*5, box_height*5,1], [0,box_height*5/2 -0.5, -box_depth/2-300], "white")
+    wall = scene_obj.create_box_with_material([box_width*5, box_height*5,1], [0,box_height*5/2 , -box_depth/2-300], "white")
     scene_obj.add_geometry(wall, geom_name="wall")
 
 
     # Randomized block properties
     short_block_width, short_block_depth, short_block_height = 160, 165, 160
-    tall_block_width = short_block_width + random.random() * 0.2 * short_block_width
+    tall_block_width = short_block_width + random.random() * 0.3 * short_block_width
     tall_block_depth = short_block_depth + random.random() * 0.2 * short_block_depth
     tall_block_height = 330 + random.uniform(-1, 1) * 0.1 * 330
-    distance = 300 + random.uniform(-1, 1) * 0.1 * 300
+    distance = 300 + random.uniform(-1, 1) * 0.2 * 300
     block_x = random.uniform(-box_width / 2 + tall_block_width / 2, box_width / 2 - tall_block_width / 2)
 
+
+    short_block_z = random.uniform(-265+0.5*short_block_depth, 260 - tall_block_depth -0.5*short_block_depth)
+    tall_block_z = random.uniform(short_block_z + 0.5*short_block_depth + 5 + 0.5 * tall_block_depth, 265 - 0.5*tall_block_depth)
     # Add tall block
     tall_block = scene_obj.create_box_with_material([tall_block_width, tall_block_height, tall_block_depth],
-                                                    [block_x, tall_block_height / 2, -150 + distance], "white")
+                                                    [block_x, tall_block_height / 2 + 0.5*wall_width,tall_block_z], "white")
     scene_obj.add_geometry(tall_block, geom_name="tall_box")
 
 
     short_block = scene_obj.create_box_with_material(
         [short_block_width, short_block_height, short_block_depth],
-        [block_x, short_block_height / 2, -150],
+        [block_x, short_block_height / 2 + 0.5 * wall_width, short_block_z],
         "white"
     )
     scene_obj.add_geometry(short_block, geom_name = "short_box")
@@ -104,7 +108,7 @@ if __name__ == "__main__":
     print(f"📌 Box dimensions: {box_width}, {box_height}, {box_depth}")
     print(f"📌 Short block: {short_block_width}, {short_block_height}, {short_block_depth}")
     print(f"📌 Tall block: {tall_block_width}, {tall_block_height}, {tall_block_depth}")
-    print(f"📌 Distance between blocks: {distance}")
+    print(f"📌 Distance between blocks: {tall_block_z - short_block_z}")
     print(f"📌 Block X position: {block_x}")
 
     # Export the scene

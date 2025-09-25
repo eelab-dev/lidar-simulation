@@ -27,11 +27,11 @@ myComputeType get_random_float(RNG &rng)
     return distribution(rng);
 }
 
-myComputeType sample_delay_distance( myComputeType mean_m, myComputeType std_m, RNG &rng) 
+float sample_delay_distance( myComputeType mean_m, myComputeType std_m, RNG &rng) 
 {
 
 
-    oneapi::dpl::uniform_real_distribution<myComputeType> distribution(mean_m, std_m);
+    oneapi::dpl::normal_distribution<myComputeType> distribution(mean_m, std_m);
 
     return distribution(rng);
 

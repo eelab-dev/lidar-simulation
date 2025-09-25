@@ -15,6 +15,8 @@ if __name__ == "__main__":
     parser.add_argument("--detector_width", type=float, help="Detector width in mm")
     parser.add_argument("--detector_height", type=float, help="Detector height in mm")
 
+    parser.add_argument("--delay_mean", type=float, help="The mean of delay laser")
+    parser.add_argument("--delay_std", type=float, help="The standard devation of delay laser")
 
     args = parser.parse_args()
     camera_output_file = args.camera_file
@@ -26,4 +28,4 @@ if __name__ == "__main__":
     camear_location[2] = camear_location[2] + random_list[2]
     camear_look[0] = camear_look[0] + random_list[0]
     camear_look[1] = camear_look[1] + random_list[1]
-    generate_camera_json(camera_position=camear_location,look_at_point=camear_look,filename=camera_output_file,detector_width=args.detector_width,detector_height=args.detector_height)
+    generate_camera_json(camera_position=camear_location,look_at_point=camear_look,filename=camera_output_file,detector_width=args.detector_width,detector_height=args.detector_height,delay_mean = args.delay_mean,delay_std=args.delay_std)

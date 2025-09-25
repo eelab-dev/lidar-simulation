@@ -82,7 +82,7 @@ class syclScene
         
 
         
-        resultRecordStructure doRendering(const Ray &initialRay, RNG &rng, myComputeType delay_distance) const
+        resultRecordStructure doRendering(const Ray &initialRay, RNG &rng) const
         {
 
             int maxDepth = 10;
@@ -92,7 +92,7 @@ class syclScene
             Ray &currentRay = temRay;
             result._collisionCount = 0;
             result._hit = false;
-            result._travelDistance = delay_distance;
+            result._travelDistance = 0;
     
             
             for (depth = 0; depth < maxDepth; ++depth)

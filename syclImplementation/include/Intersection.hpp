@@ -20,4 +20,5 @@ struct resultRecordStructure{
     bool _hit = false;
     int _collisionCount = 0;
     myComputeType _travelDistance = 0;
+    float _emission_delay = 0;
 };

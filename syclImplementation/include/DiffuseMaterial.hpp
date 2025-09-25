@@ -16,11 +16,19 @@ class diffuseMaterial: public Material{
         }
 
         Vec3 sample_virtual(const Vec3 &wi, const Vec3 &N, RNG &rng) const{
-            // uniform sample on the hemisphere
-            myComputeType x_1 = get_random_float(rng), x_2 = get_random_float(rng);
-            myComputeType z = sycl::fabs(1.0f - 2.0f * x_1);
-            myComputeType r = std::sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
-            Vec3 localRay(r*std::cos(phi), r*std::sin(phi), z);
+
+            // Cosine-weighted hemisphere sampling
+            myComputeType u1 = get_random_float(rng);  // [0,1)
+            myComputeType u2 = get_random_float(rng);  // [0,1)
+
+            myComputeType z   = sycl::sqrt(u1);                          // cosθ
+            myComputeType r   = sycl::sqrt((myComputeType)1.0 - z * z);
+            myComputeType phi = (myComputeType)(2.0 * M_PI) * u2;
+
+            Vec3 localRay(r * sycl::cos(phi), 
+                        r * sycl::sin(phi), 
+                        z);
+
             return toWorld(localRay, N);
         }
 
