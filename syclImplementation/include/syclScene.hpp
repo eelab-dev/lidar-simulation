@@ -107,7 +107,7 @@ class syclScene
                     return result;
                 }
 
-                if(get_random_float(rng) > 0.5)
+                if(get_random_float(rng) > 0.9)
                 {
                     result._hit = false;
                     return result;

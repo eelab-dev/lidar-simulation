@@ -1,7 +1,7 @@
 #include <cmath>
 #include <utility>
 
-std::pair<int, int> computeAdjustedSize(int input_width, int input_height, int target_area = 250000) {
+std::pair<int, int> computeAdjustedSize(int input_width, int input_height, int target_area = 500000) {
     if (input_width <= 0 || input_height <= 0) {
         throw std::invalid_argument("Width and height must be positive integers.");
     }

@@ -13,7 +13,9 @@ source .venv/bin/activate
 
 # config="animation/animation_config.json"
 
-config="ADS6311/positive/ADS_positive.json"
+# config="ADS6311/positive/ADS_positive.json"
+config="ADS_calibration/ADS_calibration.json"
+# config="ADS6311/negative/ADS_negative.json"
 config_dir=$(dirname "$config")
 
 endIndex=$(jq -r '.global_settings.end_index// empty' "$config")
@@ -41,7 +43,7 @@ fi
 
 for ((i=startIndex;i<=endIndex+ iteration;i++))
 do
-    # sleep 2m
+    # sleep 1m
     if jq -e '.camera_setting | length > 0' "$config" > /dev/null 2>&1; then
         echo "[INFO] Camera setting found in config."
 
@@ -49,6 +51,9 @@ do
 
         detectorWidth=$(jq -r '.camera_setting.detectorWidth // 20' "$config")
         detectorHeight=$(jq -r '.camera_setting.detectorHeight// 20' "$config")
+        
+        delay_mean=$(jq -r '.camera_setting.delay_mean// 45' "$config")
+        delay_std=$(jq -r '.camera_setting.delay_std// 200' "$config")
         output_camera_dir="${config_dir}/${output_camera_dir}"
 
         mkdir -p "$output_camera_dir"
@@ -65,7 +70,8 @@ do
         simulation_flag+=" --camera_file ${output_camera_file_path}" 
         simulation_flag+=" --detector_width ${detectorWidth}"
         simulation_flag+=" --detector_height ${detectorHeight}"
-
+        simulation_flag+=" --delay_mean ${delay_mean}"
+        simulation_flag+=" --delay_std ${delay_std}"
 
         python3 pythonScripts/generateCamera.py \
         $simulation_flag || { 
@@ -185,6 +191,8 @@ do
                     detector_width=$(jq -r '.detector_width // empty' "$full_camera_config_path")
                     detector_height=$(jq -r '.detector_height // empty' "$full_camera_config_path")
 
+                    delay_mean=$(jq -r '.delay_mean// empty' "$full_camera_config_path")
+                    delay_std=$(jq -r '.delay_std// empty' "$full_camera_config_path")
                     # Append the new flags to the simulation_flag variable
                     simulation_flag+=" --cameraPosition ${cam_pos_x} ${cam_pos_y} ${cam_pos_z}"
                     simulation_flag+=" --lookAt ${look_at_x} ${look_at_y} ${look_at_z}"
@@ -193,6 +201,11 @@ do
                     if [[ -n "$detector_width" && -n "$detector_height" ]]; then
                         simulation_flag+=" --detectorWidth ${detector_width}"
                         simulation_flag+=" --detectorHeight ${detector_height}"
+                    fi
+
+                    if [[ -n "$delay_mean" && -n "$delay_std" ]]; then
+                        simulation_flag+=" --delay_mean ${delay_mean}"
+                        simulation_flag+=" --delay_std ${delay_std}"
                     fi
                 else
                     echo "WARNING: camera_config_file specified but not found at '${full_camera_config_path}'. Skipping camera override."

@@ -181,11 +181,13 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
 
       int idx = v_counter.fetch_add(1);  
       collision_acc[idx].collisionCount = tem._collisionCount;
+      tem._emission_delay = 0;      
       collision_acc[idx].distance = tem._travelDistance + tem._emission_delay;
       collision_acc[idx].collisionLocation = tem._position;
       collision_acc[idx].collisionDirection = cameraAcc[0].toCameraBase(tem._direction);
       collision_acc[idx].camera_x = i/widthUnit;
       collision_acc[idx].camera_y = j/heightUnit;
+
       collision_acc[idx].emission_delay = tem._emission_delay;
     }
   }
