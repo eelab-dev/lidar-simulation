@@ -26,6 +26,66 @@ else
     exit 1
 fi
 
+SUBMODULE_DIR="external/tinyusdz"
+REPO_URL="https://github.com/lighttransport/tinyusdz.git"
+
+mkdir -p external
+
+if [ -d "$SUBMODULE_DIR/.git" ]; then
+    echo "Updating existing tinyusdz repository..."
+    cd "$SUBMODULE_DIR" || exit 1
+    # detect current remote default (usually 'release')
+    DEFAULT_REF=$(git ls-remote --symref origin HEAD | awk -F'[: ]+' '/^ref:/ {print $3}')
+    git fetch --tags origin
+    git checkout "${DEFAULT_REF:-release}" || true
+    git pull --ff-only origin "${DEFAULT_REF:-release}" || true
+    cd - > /dev/null || exit 1
+else
+    echo "Cloning tinyusdz repository..."
+    DEFAULT_REF=$(git ls-remote --symref "$REPO_URL" HEAD | awk -F'[: ]+' '/^ref:/ {print $3}')
+    git clone --depth 1 -b "${DEFAULT_REF:-release}" "$REPO_URL" "$SUBMODULE_DIR"
+fi
+
+# Success check (and sanity: header should be under src/)
+if [ -d "$SUBMODULE_DIR" ] && [ -f "$SUBMODULE_DIR/src/tinyusdz.hh" ]; then
+    echo "tinyusdz is set up successfully in $SUBMODULE_DIR"
+else
+    echo "Error: tinyusdz failed to set up (tinyusdz.hh not found)."
+    exit 1
+fi
+
+
+
+
+#!/usr/bin/env bash
+SUBMODULE_DIR="external/tinyusdz"
+REPO_URL="https://github.com/lighttransport/tinyusdz.git"
+
+mkdir -p external
+
+if [ -d "$SUBMODULE_DIR/.git" ]; then
+  echo "Updating existing tinyusdz repository..."
+  cd "$SUBMODULE_DIR" || exit 1
+  DEFAULT_REF=$(git ls-remote --symref origin HEAD | awk -F'[: ]+' '/^ref:/ {print $3}')
+  git fetch --tags origin
+  git checkout "${DEFAULT_REF:-release}" || true
+  git pull --ff-only origin "${DEFAULT_REF:-release}" || true
+  cd - >/dev/null || exit 1
+else
+  echo "Cloning tinyusdz repository..."
+  DEFAULT_REF=$(git ls-remote --symref "$REPO_URL" HEAD | awk -F'[: ]+' '/^ref:/ {print $3}')
+  git clone --depth 1 -b "${DEFAULT_REF:-release}" "$REPO_URL" "$SUBMODULE_DIR"
+fi
+
+# Ensure header is present where we expect it
+if [ -d "$SUBMODULE_DIR" ] && [ -f "$SUBMODULE_DIR/src/tinyusdz.hh" ]; then
+  echo "tinyusdz is set up successfully in $SUBMODULE_DIR"
+else
+  echo "Error: tinyusdz failed to set up (tinyusdz.hh not found)."
+  exit 1
+fi
+
+
 # Update package lists
 echo "Updating package lists..."
 sudo apt-get update
