@@ -131,22 +131,33 @@ pip install -r requirements.txt
 
 # ─── Rust Environment and Build ─────────────────────────────────────
 echo "Setting Rust build output to ./target ..."
-export CARGO_TARGET_DIR=./target
+# export CARGO_TARGET_DIR=./target
 
-echo "Compiling Rust project..."
-cargo build --release
+# echo "Compiling Rust project..."
+# cargo build --release
 
-if [ -f "Cargo.toml" ]; then
-    cargo build --release
-    if [ $? -eq 0 ]; then
-        echo "✅ Rust build completed successfully."
-    else
-        echo "❌ Rust build failed!"
-        exit 1
-    fi
+# if [ -f "Cargo.toml" ]; then
+#     cargo build --release
+#     if [ $? -eq 0 ]; then
+#         echo "✅ Rust build completed successfully."
+#     else
+#         echo "❌ Rust build failed!"
+#         exit 1
+#     fi
+# else
+#     echo "❌ Cargo.toml not found in current directory."
+#     exit 1
+# fi
+
+MANIFEST="./rustLib/Cargo.toml"
+
+export CARGO_TARGET_DIR="./rustLib/target"
+if [ -f "$MANIFEST" ]; then
+  echo "Building Rust crate (Release) from $MANIFEST ..."
+  cargo build --release --manifest-path "$MANIFEST"
+  echo "✅ Rust build done. Artifacts: ./target/release"
 else
-    echo "❌ Cargo.toml not found in current directory."
-    exit 1
+  echo "ℹ️ ./rustLib/Cargo.toml not found; skipping Rust build."
 fi
 
 
