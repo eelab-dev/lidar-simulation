@@ -14,7 +14,8 @@ source .venv/bin/activate
 # config="animation/animation_config.json"
 
 # config="ADS6311/positive/ADS_positive.json"
-config="ADS_calibration/ADS_calibration.json"
+# config="ADS_calibration/ADS_calibration.json"
+config="usdTest/usdTest.json"
 # config="ADS6311/negative/ADS_negative.json"
 config_dir=$(dirname "$config")
 

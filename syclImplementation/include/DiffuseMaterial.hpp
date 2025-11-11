@@ -7,13 +7,15 @@ class diffuseMaterial: public Material{
 
 
         diffuseMaterial(): Material() {
-            
             _type = DIFFUSE;
         }
 
-        diffuseMaterial(Vec3 emission, Vec3 specular, Vec3 diffuse): Material(emission, specular, diffuse) {
-            _type = DIFFUSE;
-        }
+        diffuseMaterial (float reflectivity):Material(DIFFUSE) {
+
+            _reflectivity = reflectivity;
+
+        };
+
 
         Vec3 sample_virtual(const Vec3 &wi, const Vec3 &N, RNG &rng) const{
 
@@ -32,14 +34,14 @@ class diffuseMaterial: public Material{
             return toWorld(localRay, N);
         }
 
-        Vec3 eval_virtual(const Vec3 &wi, const Vec3 &wo, const Vec3 &N) const{
+        // Vec3 eval_virtual(const Vec3 &wi, const Vec3 &wo, const Vec3 &N) const{
 
-            float cosTheta = dotProduct(N, wo);
-            if (cosTheta <= -MyEPSILON){
-                return Vec3(0.0f, 0.0f, 0.0f);
-            }
-            return _diffuse / M_PI;
-        }
+        //     float cosTheta = dotProduct(N, wo);
+        //     if (cosTheta <= -MyEPSILON){
+        //         return Vec3(0.0f, 0.0f, 0.0f);
+        //     }
+        //     return _diffuse / M_PI;
+        // }
 
         myComputeType pdf_virtual(const Vec3 &wi, const Vec3 &wo, const Vec3 &N) const{
             return 0.5/M_PI;

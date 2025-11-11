@@ -1,9 +1,13 @@
 #pragma once
 
+#include "usd_obj_loader.hpp"
 #include "GeometryList.hpp"
 #include "MaterialList.hpp"
 #include "BVHArray.hpp"
 #include "Camera.hpp"
+
+
+
 
 struct Object
 {
@@ -42,6 +46,10 @@ struct ObjectListContent
     
     Material** _materialList = nullptr;
     size_t _materialListSize = 0;
+
+    Material* _detectorMaterialList = nullptr;
+    size_t _detectorMaterialListSize = 0;
+
     diffuseMaterial* _diffuseMaterialList = nullptr;
     size_t _diffuseMaterialListSize = 0;
 
@@ -70,27 +78,48 @@ struct ObjectListContent
     }
 
 
-    void addMaterial(std::vector<MaterialInfo>& materialInfoList)
+    void addMaterial(std::vector<MaterialInfo>& materialInfoList, Material_information& materialInfo)
     {
             _materialList = sycl::malloc_shared<Material*>(materialInfoList.size(), _myQueue);
-            _diffuseMaterialList = sycl::malloc_shared<diffuseMaterial>(materialInfoList.size(), _myQueue);
+            _diffuseMaterialList = sycl::malloc_shared<diffuseMaterial>(materialInfo.diffuseMaterialNum,_myQueue);
+            _detectorMaterialList = sycl::malloc_shared<Material>(materialInfo.detectorMaterialNum,_myQueue);
             for (size_t i = 0; i < materialInfoList.size(); i++)
             {
                 //_diffuseList[i] = diffuseMaterial(materialInfoList[i]._emission, materialInfoList[i]._specular, materialInfoList[i]._diffuse);
-                diffuseMaterial material(materialInfoList[i]._emission, materialInfoList[i]._specular, materialInfoList[i]._diffuse);
-                _myQueue.memcpy(_diffuseMaterialList+i, &material, sizeof(diffuseMaterial)).wait();
-                _materialList[_gloablMaterialIndex] = &_diffuseMaterialList[i];
+                if (materialInfoList[i]._type == DIFFUSE)
+                {
+                    diffuseMaterial material(materialInfoList[i]._reflectivity);
+                    _myQueue.memcpy(_diffuseMaterialList+i, &material, sizeof(diffuseMaterial)).wait();
+                    _materialList[_gloablMaterialIndex] = &_diffuseMaterialList[i];
+                    _diffuseMaterialListSize++;
+                }
+                else if(materialInfoList[i]._type == DETECTOR)
+                {
+                    Material material(DETECTOR);
+
+                    _myQueue.memcpy(_detectorMaterialList+i, &material, sizeof(Material)).wait();
+                    _materialList[_gloablMaterialIndex] = &_detectorMaterialList[i];
+                    _detectorMaterialListSize++;
+                }
+
                 _materialListSize++;
-                _diffuseMaterialListSize++;
                 _gloablMaterialIndex++;
             }
     }
 
 
-    void addObject(std::vector<Triangle> &tris, std::vector<MaterialInfo>& materialInfoList, std::vector<int>& geomIDs)
+    void addObject(Triangle_OBJ_result &input_obj_result)
+    // void addObject(std::vector<Triangle> &tris, std::vector<MaterialInfo>& materialInfoList, std::vector<int>& geomIDs)
     {
+
+        auto& tris = input_obj_result.Triangles;
+        auto& materialInfoList = input_obj_result.MaterialsInfoList;
+        auto& geomIDs = input_obj_result.materialIDs;
+        auto& input_material_info = input_obj_result.materialInfo;
+        
+
         addTriangleGeometry(tris);
-        addMaterial(materialInfoList);
+        addMaterial(materialInfoList,input_material_info);
 
         size_t GeometryListSize = tris.size();
         _objectList = sycl::malloc_shared<Object>(tris.size(), _myQueue);

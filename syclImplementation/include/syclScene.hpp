@@ -9,8 +9,9 @@
 #include <cmath>
 #include <iostream>
 // #include "BVHArray.hpp"
-#include "sycl_obj_loader.hpp"
-
+// #include "sycl_obj_loader.hpp"
+#include "ObjectList.hpp"
+#include "usd_obj_loader.hpp"
 
 
 class syclScene
@@ -41,43 +42,43 @@ class syclScene
 //        BVHArray *_bvh = nullptr;
         void buildBVH();
 
-        SamplingRecord sampleLight(RNG &rng) const
-        {
+//         SamplingRecord sampleLight(RNG &rng) const
+//         {
 
-            size_t objectsListSize = _sceneObject.getObjectsListSize();   
+//             size_t objectsListSize = _sceneObject.getObjectsListSize();   
                       
-            float emitArea = 0;
-            for (size_t i = 0; i < objectsListSize; i++)
-            {
-                const Material* curMaterial = _sceneObject.getMaterial(i);
-                if (curMaterial->getEmission())
-                {
-//                    emitArea += _objectsList[i]->getArea();
-                      emitArea = _sceneObject.getArea(i);
-                }
-            }
+//             float emitArea = 0;
+//             for (size_t i = 0; i < objectsListSize; i++)
+//             {
+//                 const Material* curMaterial = _sceneObject.getMaterial(i);
+//                 if (curMaterial->getEmission())
+//                 {
+// //                    emitArea += _objectsList[i]->getArea();
+//                       emitArea = _sceneObject.getArea(i);
+//                 }
+//             }
 
-            float p = std::abs(get_random_float(rng)) * emitArea;
-            float area = 0;
+//             float p = std::abs(get_random_float(rng)) * emitArea;
+//             float area = 0;
 
-            for (size_t i = 0; i < objectsListSize; i++)
-            {
-                const Material* curMaterial = _sceneObject.getMaterial(i);
-                if (curMaterial->getEmission())
-                {
-                    area = area + _sceneObject.getArea(i);
-                    if (area >= p){
-                    return _sceneObject.Sample(rng,i);
-                        //pdf /= emitArea;
+//             for (size_t i = 0; i < objectsListSize; i++)
+//             {
+//                 const Material* curMaterial = _sceneObject.getMaterial(i);
+//                 if (curMaterial->getEmission())
+//                 {
+//                     area = area + _sceneObject.getArea(i);
+//                     if (area >= p){
+//                     return _sceneObject.Sample(rng,i);
+//                         //pdf /= emitArea;
                         
-                    }
-                }
-            }
+//                     }
+//                 }
+//             }
 
-            return SamplingRecord();
+//             return SamplingRecord();
 
 
-        }
+//         }
 
         
 
@@ -120,7 +121,7 @@ class syclScene
                 auto intersectionID = intersection._objectIndex;
                 const Material* intersectionMaterial = _sceneObject.getMaterial(intersectionID);
 
-                if (intersectionMaterial->getEmission())
+                if (intersectionMaterial->isDetector())
                 {
 
                     result._hit = true;

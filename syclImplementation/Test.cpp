@@ -2,7 +2,7 @@
 #include <math.h>
 #include <limits>
 #include <stdio.h>
-#include <tiny_obj_loader.h>
+// #include <tiny_obj_loader.h>
 #include <iostream>
 #include "Vec.hpp"
 #include "Camera.hpp" 
@@ -105,7 +105,7 @@ int main(int argc, char* argv[]){
   std::cout << widthUnit << " " << heightUnit << std::endl;
 
   OBJ_Loader loader;
-  loader.addTriangleObjectFile(ModelDir, ModelName);  
+  loader.addTriangleUSDFile(ModelDir, ModelName);  
   Camera camera(imageWidth, imageHeight, fov, cameraPosition, lookAt, up, detectorWidth, detectorHeight);
   loader.addCamera(&camera);
  
@@ -114,7 +114,7 @@ std::cout << "hello from GPGPU\n" <<std::endl;
 sycl::queue myQueue(sycl::gpu_selector_v);
 
 ObjectListContent sceneObjListContent(myQueue);
-sceneObjListContent.addObject(TriangleResult.Triangles, TriangleResult.MaterialsInfoList, TriangleResult.materialIDs);
+sceneObjListContent.addObject(TriangleResult);
 ObjectList sceneObject;
 sceneObject.setObjects(sceneObjListContent);
 
@@ -171,8 +171,6 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
     if(tem._hit)
     {
       
-      // auto v_counter = sycl::atomic_ref<int, sycl::ext::oneapi::detail::memory_order::relaxed,sycl::ext::oneapi::detail::memory_scope::device, sycl::access::address_space::global_space>(counter_acc[0]);
-      // int index = v_counter;
         auto v_counter = sycl::atomic_ref<
             int,
             sycl::ext::oneapi::detail::memory_order::relaxed,

@@ -1,35 +1,36 @@
 #!/bin/bash
 
 # Define the submodule directory and repository URL
-SUBMODULE_DIR="external/tinyobjloader"
-REPO_URL="https://github.com/tinyobjloader/tinyobjloader.git"
+# SUBMODULE_DIR="external/tinyobjloader"
+# SUBMODULE_DIR="syclImplementation/external"
+# REPO_URL="https://github.com/tinyobjloader/tinyobjloader.git"
 
-# Create the external directory if it does not exist
-mkdir -p external
+# # Create the external directory if it does not exist
+# mkdir -p syclImplementation/external
 
-# Check if the submodule directory already exists
-if [ -d "$SUBMODULE_DIR/.git" ]; then
-    echo "Updating existing tinyobjloader submodule..."
-    cd "$SUBMODULE_DIR" || exit
-    git pull origin master
-    cd - > /dev/null
-else
-    echo "Cloning tinyobjloader repository..."
-    git clone "$REPO_URL" "$SUBMODULE_DIR"
-fi
+# # Check if the submodule directory already exists
+# if [ -d "$SUBMODULE_DIR/.git" ]; then
+#     echo "Updating existing tinyobjloader submodule..."
+#     cd "$SUBMODULE_DIR" || exit
+#     git pull origin master
+#     cd - > /dev/null
+# else
+#     echo "Cloning tinyobjloader repository..."
+#     git clone "$REPO_URL" "$SUBMODULE_DIR"
+# fi
 
 # Verify the result
-if [ -d "$SUBMODULE_DIR" ]; then
-    echo "tinyobjloader is set up successfully in $SUBMODULE_DIR"
-else
-    echo "Error: tinyobjloader failed to set up."
-    exit 1
-fi
+# if [ -d "$SUBMODULE_DIR" ]; then
+#     echo "tinyobjloader is set up successfully in $SUBMODULE_DIR"
+# else
+#     echo "Error: tinyobjloader failed to set up."
+#     exit 1
+# fi
 
-SUBMODULE_DIR="external/tinyusdz"
+SUBMODULE_DIR="syclImplementation/external/tinyusdz"
 REPO_URL="https://github.com/lighttransport/tinyusdz.git"
 
-mkdir -p external
+mkdir -p syclImplementation/external
 
 if [ -d "$SUBMODULE_DIR/.git" ]; then
     echo "Updating existing tinyusdz repository..."
@@ -58,32 +59,32 @@ fi
 
 
 #!/usr/bin/env bash
-SUBMODULE_DIR="external/tinyusdz"
-REPO_URL="https://github.com/lighttransport/tinyusdz.git"
+# SUBMODULE_DIR="external/tinyusdz"
+# REPO_URL="https://github.com/lighttransport/tinyusdz.git"
 
-mkdir -p external
+# mkdir -p external
 
-if [ -d "$SUBMODULE_DIR/.git" ]; then
-  echo "Updating existing tinyusdz repository..."
-  cd "$SUBMODULE_DIR" || exit 1
-  DEFAULT_REF=$(git ls-remote --symref origin HEAD | awk -F'[: ]+' '/^ref:/ {print $3}')
-  git fetch --tags origin
-  git checkout "${DEFAULT_REF:-release}" || true
-  git pull --ff-only origin "${DEFAULT_REF:-release}" || true
-  cd - >/dev/null || exit 1
-else
-  echo "Cloning tinyusdz repository..."
-  DEFAULT_REF=$(git ls-remote --symref "$REPO_URL" HEAD | awk -F'[: ]+' '/^ref:/ {print $3}')
-  git clone --depth 1 -b "${DEFAULT_REF:-release}" "$REPO_URL" "$SUBMODULE_DIR"
-fi
+# if [ -d "$SUBMODULE_DIR/.git" ]; then
+#   echo "Updating existing tinyusdz repository..."
+#   cd "$SUBMODULE_DIR" || exit 1
+#   DEFAULT_REF=$(git ls-remote --symref origin HEAD | awk -F'[: ]+' '/^ref:/ {print $3}')
+#   git fetch --tags origin
+#   git checkout "${DEFAULT_REF:-release}" || true
+#   git pull --ff-only origin "${DEFAULT_REF:-release}" || true
+#   cd - >/dev/null || exit 1
+# else
+#   echo "Cloning tinyusdz repository..."
+#   DEFAULT_REF=$(git ls-remote --symref "$REPO_URL" HEAD | awk -F'[: ]+' '/^ref:/ {print $3}')
+#   git clone --depth 1 -b "${DEFAULT_REF:-release}" "$REPO_URL" "$SUBMODULE_DIR"
+# fi
 
-# Ensure header is present where we expect it
-if [ -d "$SUBMODULE_DIR" ] && [ -f "$SUBMODULE_DIR/src/tinyusdz.hh" ]; then
-  echo "tinyusdz is set up successfully in $SUBMODULE_DIR"
-else
-  echo "Error: tinyusdz failed to set up (tinyusdz.hh not found)."
-  exit 1
-fi
+# # Ensure header is present where we expect it
+# if [ -d "$SUBMODULE_DIR" ] && [ -f "$SUBMODULE_DIR/src/tinyusdz.hh" ]; then
+#   echo "tinyusdz is set up successfully in $SUBMODULE_DIR"
+# else
+#   echo "Error: tinyusdz failed to set up (tinyusdz.hh not found)."
+#   exit 1
+# fi
 
 
 # Update package lists
