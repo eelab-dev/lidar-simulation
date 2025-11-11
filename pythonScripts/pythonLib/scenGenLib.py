@@ -1,120 +1,92 @@
-import trimesh
+# import trimesh
 import numpy as np
-import pywavefront
+# import pywavefront
 import json
+
+from pxr import Usd, UsdGeom, UsdShade, Sdf, Gf
+class material_info:
+
+    def __init__(self,material_type,material_name,properties):
+        self._material_type = material_type 
+        self._material_name = material_name
+        self._properties = properties
+
+
 class scene:
-    def __init__(self, materials):
-        self._scene = trimesh.Scene()
-        self._materials = materials
 
-    def add_geometry(self, geom, geom_name):
-        geom.metadata["name"] = geom_name  # Assign name explicitly
-        self._scene.add_geometry(geom, node_name = geom_name)
+    def __init__(self,file_name,materials):
+        self._stage = Usd.Stage.CreateNew(file_name)
+        self._geometries = UsdGeom.Xform.Define(self._stage, Sdf.Path("/geometries"))
+        self._materials  = UsdGeom.Xform.Define(self._stage, Sdf.Path("/materials"))
 
-    def create_box_with_material(self, size, position, material_name):
-        """
-        Create a trimesh box with a specific material.
-        :param size: (width, height, depth) of the box
-        :param position: (x, y, z) position of the box center
-        :param material_name: Name of the material to assign
-        :return: trimesh.Mesh object
-        """
-        box = trimesh.creation.box(extents=size)
-        box.apply_translation(position)
-
-        # Retrieve material properties
-        material = self._materials.get(material_name, self._materials["white"])
-        diffuse_color = material["Kd"]
-
-        # Set visual properties and link material
-        box.visual = trimesh.visual.TextureVisuals(material=material)
-        box.visual.face_colors = [int(c * 255) for c in diffuse_color] + [255]  # RGBA
-        box.visual.material = trimesh.visual.material.SimpleMaterial(
-            name=material_name,
-            ambient=material.get("Ka", [0, 0, 0]),
-            diffuse=material.get("Kd", [1, 1, 1]),
-            specular=material.get("Ks", [0, 0, 0]),
-            emissive=material.get("Ke", [0, 0, 0]),
-        )
-        box.visual.material.name = material_name
-        return box
-
-    def export_scene(self, output_file="cornell_box.obj"):
-        """Exports the scene to an OBJ file."""
-        self._scene.export(output_file)
+        self._geometryPath = "/geometries"
+        self._materialPath = "/materials"
+        self._materialMap = {}
 
 
-    def remove_geometry_by_name(self, name: str):
-        """
-        Removes a geometry by its name from the scene.
-        """
-        if name in self._scene.geometry:
-            self._scene.delete_geometry(name)
+        self.add_material(materials)
 
-    @classmethod
-    def from_obj(cls, obj_file: str):
-    # Load the OBJ and MTL using pywavefront
-        wavefront_scene = pywavefront.Wavefront(
-            obj_file,
-            collect_faces=True,
-            create_materials=True,
-            parse=True,
-        )
-
-        # Extract materials
-        materials = {}
-        for mat in wavefront_scene.materials.values():
-            materials[mat.name] = {
-                "Ka": mat.ambient or [0, 0, 0],
-                "Kd": mat.diffuse or [1, 1, 1],
-                "Ks": mat.specular or [0, 0, 0],
-                "Ke": [0, 0, 0],
-            }
-
-        # Create scene instance
-        instance = cls(materials)
+    def add_material(self,materials):
 
 
-        # Global vertex pool
-        global_vertices = np.array(wavefront_scene.vertices, dtype=np.float32)
+        for material in materials:
 
-        # Process each mesh
-        for mesh in wavefront_scene.mesh_list:
-            name = mesh.name
-            if not mesh.faces:
-                continue
+            if(material._material_type):
+                mat_path = self._materialPath + "/" + material._material_name
+                mat = UsdShade.Material.Define(self._stage, Sdf.Path(mat_path))
+                mat.CreateInput("materialType", Sdf.ValueTypeNames.Token).Set("lambert")
+                # float inputs:reflectivity = 0.5
+                mat.CreateInput("reflectivity", Sdf.ValueTypeNames.Float).Set(material._properties["reflectivity"])
+                self._materialMap[material._material_name] = mat_path 
+        return 
 
-            faces = np.array(mesh.faces, dtype=np.int32)
 
-            # Step 1: Find used vertex indices
-            used = np.unique(faces.flatten())
+ 
 
-            # Step 2: Extract only used vertices
-            vertices = global_vertices[used]
+    def create_box_with_material(self, size, position, material_name, geometry_name):
 
-            # Step 3: Remap face indices to local vertex array
-            index_map = {old: new for new, old in enumerate(used)}
-            remapped_faces = np.array([[index_map[i] for i in face] for face in faces], dtype=np.int32)
+        mat_path=self._materialMap[material_name]
+        mat = UsdShade.Material.Get(self._stage, Sdf.Path(mat_path))
+        if mat_path == None:
+            print(f"[warn] Material not found at {mat_path}; mesh left unbound.")
+            return False
+        
+        w, h, d = map(float, size)
+        cx, cy, cz = map(float, position)
+        hx, hy, hz = w/2, h/2, d/2
+        # t = Gf.Vec3f(tx, ty, tz)
+        pts = [        
+            Gf.Vec3f(cx - hx, cy - hy, cz + hz),  # (-250, 0,   250)
+            Gf.Vec3f(cx - hx, cy + hy, cz + hz),  # (-250, 5,   250)
+            Gf.Vec3f(cx - hx, cy - hy, cz - hz),  # (-250, 0,  -250)
+            Gf.Vec3f(cx + hx, cy - hy, cz - hz),  # ( 250, 0,  -250)
+            Gf.Vec3f(cx - hx, cy + hy, cz - hz),  # (-250, 5,  -250)
+            Gf.Vec3f(cx + hx, cy + hy, cz + hz),  # ( 250, 5,   250)
+            Gf.Vec3f(cx + hx, cy - hy, cz + hz),  # ( 250, 0,   250)
+            Gf.Vec3f(cx + hx, cy + hy, cz - hz),  # ( 250, 5,  -250)
 
-            # Step 4: Create trimesh geometry
-            geom = trimesh.Trimesh(vertices=vertices, faces=remapped_faces, process=False)
+        ]
 
-            # Step 5: Apply material
-            mat_name = mesh.materials[0].name if mesh.materials else "white"
-            mat_data = materials.get(mat_name, materials["white"])
-            geom.visual = trimesh.visual.TextureVisuals(material=mat_data)
-            geom.visual.material = trimesh.visual.material.SimpleMaterial(
-                name=mat_name,
-                ambient=mat_data["Ka"],
-                diffuse=mat_data["Kd"],
-                specular=mat_data["Ks"],
-                emissive=mat_data["Ke"],
-            )
-            geom.visual.material.name = mat_name
-            # Step 6: Add to scene
-            instance.add_geometry(geom, geom_name=name)
+        faceVertexCounts = [3]*12
+        faceVertexIndices = [
+            0, 1, 2,  3, 0, 2,  2, 1, 4,  4, 3, 2,
+            0, 5, 1,  6, 0, 3,  6, 5, 0,  1, 5, 4,
+            7, 3, 4,  4, 5, 7,  7, 6, 3,  5, 6, 7
+        ]
+        obj_path = self._geometryPath + "/" + geometry_name
+        geometryObj =  UsdGeom.Xform.Define(self._stage, Sdf.Path(obj_path))
+        mesh_path = obj_path + "/" + geometry_name + "_mesh"
+        mesh = UsdGeom.Mesh.Define(self._stage, Sdf.Path(mesh_path))
+        mesh.CreatePointsAttr(pts)
+        mesh.CreateFaceVertexCountsAttr(faceVertexCounts)
+        mesh.CreateFaceVertexIndicesAttr(faceVertexIndices)
+        UsdShade.MaterialBindingAPI(mesh.GetPrim()).Bind(mat)
+        return True
 
-        return instance
+
+
+    def save(self):
+        self._stage.GetRootLayer().Save()   
 
 
 
