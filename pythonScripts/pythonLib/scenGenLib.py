@@ -14,21 +14,22 @@ class material_info:
 
 class scene:
 
-    def __init__(self,file_name,materials):
-        self._stage = Usd.Stage.CreateNew(file_name)
+    def __init__(self,materials=None):
+        # self._stage = Usd.Stage.CreateNew(file_name)
+        self._stage = Usd.Stage.CreateInMemory()
         self._geometries = UsdGeom.Xform.Define(self._stage, Sdf.Path("/geometries"))
         self._materials  = UsdGeom.Xform.Define(self._stage, Sdf.Path("/materials"))
 
         self._geometryPath = "/geometries"
+        self._geometryMap = {}
         self._materialPath = "/materials"
         self._materialMap = {}
+        
 
-
-        self.add_material(materials)
+        if materials is not None:
+            self.add_material(materials)
 
     def add_material(self,materials):
-
-
         for material in materials:
 
             if(material._material_type):
@@ -38,9 +39,9 @@ class scene:
                 # float inputs:reflectivity = 0.5
                 mat.CreateInput("reflectivity", Sdf.ValueTypeNames.Float).Set(material._properties["reflectivity"])
                 self._materialMap[material._material_name] = mat_path 
-        return 
 
-
+    def export_scene(self,file_name):
+        self._stage.GetRootLayer().Export(file_name)  
  
 
     def create_box_with_material(self, size, position, material_name, geometry_name):
@@ -81,14 +82,89 @@ class scene:
         mesh.CreateFaceVertexCountsAttr(faceVertexCounts)
         mesh.CreateFaceVertexIndicesAttr(faceVertexIndices)
         UsdShade.MaterialBindingAPI(mesh.GetPrim()).Bind(mat)
+        self._geometryMap[geometry_name] = {
+            "mesh":  mesh.GetPath().pathString,
+            "material":  material_name,
+        }
         return True
 
+    def remove_geometry_by_name(self,geo_name):
+        xform_path = f"{self._geometryPath}/{geo_name}"
+        prim = self._stage.GetPrimAtPath(xform_path)
+        if not prim or not prim.IsValid():
+            print(f"[warn] Geometry '{geo_name}' not found at {xform_path}")
+            return False
+        ok = self._stage.RemovePrim(prim.GetPath())
+        if not ok:
+            print(f"[warn] Failed to remove prim at {xform_path}")
+            return False
+        self._geometryMap.pop(geo_name, None)
+        return True
+        
 
 
-    def save(self):
-        self._stage.GetRootLayer().Save()   
 
 
+
+
+    # def save(self):
+    #     self._stage.GetRootLayer().Save()   
+
+    @classmethod
+    def from_usd_file(cls, input_file):
+        stage = Usd.Stage.Open(input_file)
+        if not stage:
+            raise RuntimeError(f"Cannot open USD file: {input_file}")
+
+        self = cls.__new__(cls)   # bypass __init__
+        self._stage = stage
+        self._geometryPath = "/geometries"
+        self._materialPath = "/materials"
+        self._materialMap = {}
+        self._geometryMap = {}
+
+        # (1) locate roots (don’t create if missing)
+        self._geometries_prim = stage.GetPrimAtPath(self._geometryPath)
+        self._materials_prim  = stage.GetPrimAtPath(self._materialPath)
+
+        # (2) scan materials under /materials
+        if self._materials_prim is None:
+            raise RuntimeError(f"None material found")
+    
+        for prim in stage.Traverse():
+            if not prim.GetPath().HasPrefix(self._materials_prim.GetPath()):
+                continue
+            if prim.GetTypeName() == "Material":
+                name = prim.GetName()
+                self._materialMap[name] = prim.GetPath().pathString
+
+        # (3) scan geometries: each direct child Xform under /geometries,
+        #     find the first descendant Mesh, and read direct binding
+        geo_root = stage.GetPrimAtPath(self._geometryPath)
+
+        if geo_root is None:
+            raise RuntimeError(f"None geometries found")
+
+        for child in geo_root.GetChildren():
+            if not child.IsA(UsdGeom.Xform):
+                continue
+            mesh_prim = next((p for p in Usd.PrimRange(child) if p.IsA(UsdGeom.Mesh)), None)
+            if not mesh_prim:
+                continue
+     
+            mesh = UsdGeom.Mesh(mesh_prim)
+            # direct material binding path (if any)
+            bind_api = UsdShade.MaterialBindingAPI(mesh.GetPrim())
+            binding  = bind_api.GetDirectBinding()
+            mat_path = binding.GetMaterialPath()
+            mat_str  = mat_path.pathString if mat_path else None
+
+            geom_name = child.GetName()
+            self._geometryMap[geom_name] = {
+                "mesh":  mesh.GetPath().pathString,
+                "material":   mat_str,
+            }
+        return self
 
 def generate_camera_json(camera_position, look_at_point, filename="camera_config.json",detector_width=None, detector_height=None, delay_mean=None, delay_std=None):
     """

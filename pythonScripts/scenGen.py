@@ -36,7 +36,7 @@ if __name__ == "__main__":
     wall_width = 7
 
     # Create scene object
-    scene_obj = scene("box_mesh.usda",materials)
+    scene_obj = scene(materials)
 
     # Floor
     scene_obj.create_box_with_material(
@@ -95,22 +95,14 @@ if __name__ == "__main__":
     )
 
 
-
-
-    short_block_width, short_block_depth, short_block_height = 160, 165, 160
-    tall_block_width  = short_block_width * (1 + 0.3 * random.random())
-    tall_block_depth  = short_block_depth * (1 + 0.2 * random.random())
-    tall_block_height = 330 * (1 + 0.1 * random.uniform(-1, 1))
-    distance          = 300 * (1 + 0.2 * random.uniform(-1, 1))  # if you use it later
-
-    block_x = random.uniform(-box_width/2 + tall_block_width/2,
-                            box_width/2 - tall_block_width/2)
-
-    short_block_z = random.uniform(-265 + 0.5*short_block_depth,
-                                260 - tall_block_depth - 0.5*short_block_depth)
-
-    tall_block_z  = random.uniform(short_block_z + 0.5*short_block_depth + 5 + 0.5*tall_block_depth,
-                                265 - 0.5*tall_block_depth)
+    short_block_width, short_block_depth, short_block_height = 160, 165, 160 
+    tall_block_width = short_block_width + random.random() * 0.3 * short_block_width 
+    tall_block_depth = short_block_depth + random.random() * 0.2 * short_block_depth 
+    tall_block_height = 330 + random.uniform(-1, 1) * 0.1 * 330 
+    distance = 300 + random.uniform(-1, 1) * 0.2 * 300 
+    block_x = random.uniform(-box_width / 2 + tall_block_width / 2, box_width / 2 - tall_block_width / 2) 
+    short_block_z = random.uniform(-265+0.5*short_block_depth, 260 - tall_block_depth -0.5*short_block_depth) 
+    tall_block_z = random.uniform(short_block_z + 0.5*short_block_depth + 5 + 0.5 * tall_block_depth, 265 - 0.5*tall_block_depth)
 
     # Tall block
     scene_obj.create_box_with_material(
@@ -135,7 +127,8 @@ if __name__ == "__main__":
     print(f"📌 Distance between blocks: {tall_block_z - short_block_z}")
     print(f"📌 Block X position: {block_x}")
 
-    scene_obj.save()
+    # scene_obj.save()
+    scene_obj.export_scene(file_name=output_file)
     print("Wrote box_mesh.usda")
 
 
