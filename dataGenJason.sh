@@ -132,7 +132,7 @@ do
     
 
     if jq -e '.simulation_generation | length > 0' "$config" > /dev/null 2>&1; then
-        input_model_dir=$(jq -r '.simulation_generation.input_model_dir' "$config")
+        input_model_dir=$(jq -r '.simulation_generation.input_model_dir // "model"' "$config")
         input_model_dir="${config_dir}/${input_model_dir}"
         input_model_file="${global_prefix}_obj_${i}.obj"
         if jq -e '.simulation_generation.static_model' "$config" > /dev/null 2>&1; then
