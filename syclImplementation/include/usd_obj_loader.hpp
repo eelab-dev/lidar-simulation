@@ -110,6 +110,36 @@ public:
         return true;
     }
 
+
+    std::vector<Vec3> computeFaceNormalsFromVertexNormals(
+        const std::vector<Vec3>& vertexNormals,      // size == numPoints
+        const std::vector<int32_t>& faceVertexCounts,
+        const std::vector<int32_t>& faceVertexIndices)
+    {
+        std::vector<Vec3> faceNormals;
+        faceNormals.reserve(faceVertexCounts.size());
+
+        size_t cursor = 0;  // walks through faceVertexIndices
+
+        for (size_t f = 0; f < faceVertexCounts.size(); ++f)
+        {
+            int32_t nVerts = faceVertexCounts[f];
+
+            Vec3 sum(0.f, 0.f, 0.f);
+            for (int32_t i = 0; i < nVerts; ++i)
+            {
+                int32_t vi = faceVertexIndices[cursor++];  // index into points/normals
+                sum += vertexNormals[vi];
+            }
+
+            // Average & normalize (avoid division by zero)
+            Vec3 n = sum.normalized();
+            faceNormals.push_back(n);
+        }
+
+        return faceNormals;
+    }
+
     bool loadMesh(const tinyusdz::Prim *root_mesh)
     {
 
@@ -132,6 +162,11 @@ public:
                 auto P = mesh->get_points();                // std::vector<value::point3f>
                 auto counts = mesh->get_faceVertexCounts(); // std::vector<int32_t>
                 auto fvi = mesh->get_faceVertexIndices();   // std::vector<int32_t>
+                auto N = mesh->get_normals();
+                std::vector<Vec3> vetex_normal_vect;
+                std::vector<Vec3> face_normal_vect;
+                const bool has_normals = !N.empty();
+
                 std::vector<Vec3> pts;
                 pts.reserve(P.size());
 
@@ -154,7 +189,23 @@ public:
                                      static_cast<float>(v[2]));
                 }
 
+                if(has_normals)
+                {
+
+                    std::vector<Vec3> vetex_normal_vect;
+                    for (const auto &n : N)
+                    {
+                        vetex_normal_vect.emplace_back(static_cast<float>(n[0]),
+                                                        static_cast<float>(n[1]),
+                                                        static_cast<float>(n[2]));
+                    }
+                    face_normal_vect = computeFaceNormalsFromVertexNormals(vetex_normal_vect,counts,fvi);
+                }
+
+
+
                 size_t idx = 0;
+                size_t num_mesh = 0;
                 for (size_t f = 0; f < counts.size(); ++f)
                 {
                     int n = counts[f];
@@ -168,10 +219,19 @@ public:
                     for (int k = 2; k < n; ++k)
                     {
                         int v2 = fvi[idx++];
-                        _gloabalTranglesResult.emplace_back(pts[v0], pts[vPrev], pts[v2]);
+                        if(has_normals)
+                        {
+                            _gloabalTranglesResult.emplace_back(pts[v0], pts[vPrev], pts[v2],face_normal_vect[num_mesh]);
+                        }
+                        else
+                        {
+                            _gloabalTranglesResult.emplace_back(pts[v0], pts[vPrev], pts[v2]);
+                        }
                         _globalMaterialIDs.push_back(materialIndex); // if you have one
                         vPrev = v2;
                     }
+                    num_mesh ++;
+        
                 }
             }
         }

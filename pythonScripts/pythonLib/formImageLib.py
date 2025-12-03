@@ -93,8 +93,47 @@ def form_average_image(pixels, image_width, image_heigh):
                 image[i][j] = 0
     return image
 
+def center_of_mass_peak(bins: np.ndarray) -> float:
+    """
+    Return the index of the histogram's center of mass.
 
-def form_histogram_image(pixels, image_width, image_height,bin_number = 25, range_distance = [1000,2500]):
+    bins: 1D array of counts for each bin.
+    """
+    total = bins.sum()
+    if total <= 0:
+        # no photons in this pixel, fall back to 0 (or any convention you like)
+        return 0
+
+    indices = np.arange(bins.shape[0], dtype=float)
+    com = (indices * bins).sum() / total   # weighted average of indices
+
+    # round to nearest integer bin index
+    idx = com
+    if idx < 0 or idx >= bins.shape[0] -1:
+        return -1
+
+    # make sure it's within [0, len(bins)-1]
+    return idx
+
+def from_groundTruth_image(pixels,image_width,image_height):
+    
+    distance_image = np.zeros((image_width,image_height), dtype=np.float32)
+
+    for i in range(image_width):
+        for j in range(image_height): 
+            photon_number = len(pixels[i][j])
+            pixel_distance = 0
+            for k in range(photon_number):
+                distance = pixels[i][j][k][0]
+                pixel_distance += distance
+            if photon_number > 0:
+                pixel_distance = pixel_distance/photon_number
+                distance_image[i][j] = pixel_distance 
+    return distance_image 
+
+            
+
+def form_histogram_image(pixels, image_width, image_height,bin_number = 25, range_distance = [1000,2500],peak_func=np.argmax, ):
     illegal_photon = np.empty((image_width,image_height), dtype=object)
     for i, j in np.ndindex(image_width,image_height):
         illegal_photon[i, j] = []
@@ -121,8 +160,8 @@ def form_histogram_image(pixels, image_width, image_height,bin_number = 25, rang
                 if stamped_histogram[i,j,k] > 0:
                     stamped_collosion[i,j,k] = stamped_collosion[i,j,k]/stamped_histogram[i,j,k]
                 
-            max_bin_index = np.argmax(stamped_histogram[i, j])
-            if stamped_histogram[i, j, max_bin_index] > 0:
+            max_bin_index = peak_func(stamped_histogram[i, j])
+            if max_bin_index > 0:
                 distance_image[i, j] = range_min + (max_bin_index + 0.5) * bin_width
     return distance_image, illegal_photon, stamped_histogram, stamped_collosion
 

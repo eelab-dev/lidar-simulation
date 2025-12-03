@@ -166,7 +166,7 @@ class scene:
             }
         return self
 
-def generate_camera_json(camera_position, look_at_point, filename="camera_config.json",detector_width=None, detector_height=None, delay_mean=None, delay_std=None):
+def generate_camera_json(camera_position, look_at_point, filename="camera_config.json",detector_width=None, detector_height=None, delay_mean=None, delay_std=None, up = [0,0,1]):
     """
     Generate a camera JSON file with variable camera_position and look_at_point.
 
@@ -183,7 +183,8 @@ def generate_camera_json(camera_position, look_at_point, filename="camera_config
     # Structure data
     data = {
         "camera_position": list(map(float, camera_position)),
-        "look_at_point": list(map(float, look_at_point))
+        "look_at_point": list(map(float, look_at_point)),
+        "up_direction": list(map(float,up))
     }
     
     if detector_width is not None:

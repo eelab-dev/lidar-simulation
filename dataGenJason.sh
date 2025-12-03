@@ -5,10 +5,14 @@ SCRIPT_DIR=$(dirname "$(realpath "$0")")
 cd "$SCRIPT_DIR" || exit 1
 
 # Source Intel oneAPI environment
-. /opt/intel/oneapi/setvars.sh --include-intel-llvm > /dev/null 2>&1
+# . /opt/intel/oneapi/setvars.sh --include-intel-llvm > /dev/null 2>&1
 
+export ONEAPI_ROOT="$HOME/intel/oneapi"
+source "$ONEAPI_ROOT/setvars.sh" --include-intel-llvm > /dev/null
 # Activate virtual environment
-source .venv/bin/activate
+source ~/miniconda3/etc/profile.d/conda.sh   # path may be ~/anaconda3/...
+conda activate lidarSimulation
+# source .venv/bin/activate
 
 
 # config="animation/animation_config.json"
@@ -188,15 +192,21 @@ do
                     look_at_y=$(jq -r '.look_at_point[1]' "$full_camera_config_path")
                     look_at_z=$(jq -r '.look_at_point[2]' "$full_camera_config_path")
 
+                    up_dirction_x=$(jq -r '.up_direction[0]' "$full_camera_config_path")
+                    up_dirction_y=$(jq -r '.up_direction[1]' "$full_camera_config_path")
+                    up_dirction_z=$(jq -r '.up_direction[2]' "$full_camera_config_path")
+
                     # Optional: Extract detector dimensions if they exist
                     detector_width=$(jq -r '.detector_width // empty' "$full_camera_config_path")
                     detector_height=$(jq -r '.detector_height // empty' "$full_camera_config_path")
 
                     delay_mean=$(jq -r '.delay_mean// empty' "$full_camera_config_path")
                     delay_std=$(jq -r '.delay_std// empty' "$full_camera_config_path")
+                    
                     # Append the new flags to the simulation_flag variable
                     simulation_flag+=" --cameraPosition ${cam_pos_x} ${cam_pos_y} ${cam_pos_z}"
                     simulation_flag+=" --lookAt ${look_at_x} ${look_at_y} ${look_at_z}"
+                    simulation_flag+=" --up ${up_dirction_x} ${up_dirction_y} ${up_dirction_z}"
 
                     # Conditionally append detector size if found
                     if [[ -n "$detector_width" && -n "$detector_height" ]]; then
@@ -245,7 +255,7 @@ do
             --output "${rawData_file_path}" \
             --seed 4 \
             $simulation_flag || { 
-            echo "Error running HELLOEMBREE"; 
+            echo "Error running sycl simulation code"; 
             exit 1;} 
         else 
             echo "Skipping simulation block: $input_model_file_path does not exist"
@@ -253,6 +263,8 @@ do
     fi
 
     if jq -e '.pixelization_process | length > 0' "$config" > /dev/null 2>&1; then
+        export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
+
         input_rawData_dir=$(jq -r '.pixelization_process.input_rawData_dir' "$config")
         input_rawData_dir="${config_dir}/${input_rawData_dir}"
         input_rawData_file="${global_prefix}_rawData_${i}.h5"

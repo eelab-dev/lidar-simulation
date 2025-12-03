@@ -18,6 +18,20 @@ class Triangle : public Geometry
             area = (crossProduct(e1,e2)).length()*0.5f;
             Geometry::_type = GeometryType::TRIANGLE;
         }
+        
+        Triangle(const Vec3 &v1, const Vec3 &v2, const Vec3 &v3, const Vec3 &inputNormal)
+            : Geometry(GeometryType::TRIANGLE),
+            _v1(v1),
+            _v2(v2),
+            _v3(v3),
+            normal(inputNormal.normalized()) // normalize just in case
+        {
+            e1 = _v2 - _v1;
+            e2 = _v3 - _v1;
+            area = crossProduct(e1, e2).length() * 0.5f;
+            Geometry::_type = GeometryType::TRIANGLE;
+        }
+
         ~Triangle(){}
 
     //bool Intersect_virtual(const Ray& ray) const;

@@ -81,9 +81,35 @@ class syclScene
 //         }
 
         
+        resultRecordStructure doGroundTruth(const Ray &initialRay, RNG &rng) const
+        {
+
+            resultRecordStructure result;
+            result._collisionCount = 0;
+            result._hit = false;
+            result._travelDistance = 0;
+
+
+            Intersection intersection = castRay(initialRay);
+            if (!intersection._hit)
+            {
+                result._hit = false;
+                return result;
+            }
+
+
+            result._hit = true;
+            result._position = intersection._position;
+            result._direction = initialRay.direction;
+            result._travelDistance = result._travelDistance + (intersection._position - initialRay.origin).length();
+            result._collisionCount++;
+            return result;
+
+
+        }
 
         
-        resultRecordStructure doRendering(const Ray &initialRay, RNG &rng) const
+        resultRecordStructure doSimulation(const Ray &initialRay, RNG &rng) const
         {
 
             int maxDepth = 10;

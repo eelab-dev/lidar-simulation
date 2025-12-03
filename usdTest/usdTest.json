@@ -1,0 +1,54 @@
+{
+    "global_settings" : {
+        "model_dir":"model",
+        "start_index": 1, 
+        "end_index": 1,
+        "global_prefix": "test",
+        "fov": 80 
+    },
+
+
+    "model_generation":{
+        "output_model_dir" : "model"
+    },
+
+    "camera_setting" : {
+        "location":[300,100,280.0],
+        "look_at":[0,100,280],
+        "detectorWidth": 58,
+        "detectorHeight":58,
+        "delay_mean":0,
+        "delay_std":0,
+        "random":{
+        "offset":[0,10,-10]
+        }
+    },
+
+    "simulation_generation":{
+        "static_model": "output1_remove.usda",
+        "output_rawData_dir" : "rawData",
+       "camera_config":{
+        "camear_dir": "camera",
+        "camera_config_prefix": "camera"
+       },
+        "height": 100,
+        "width": 100,  
+       "ssp": 5000
+    },
+
+
+    "pixelization_process":{
+        "input_rawData_dir" : "rawData",
+        "height": 60,
+        "width": 60 
+    },
+    
+
+    "imageFormation_process":{
+        "input_pixelized_dir" : "pixelizedData",
+        "bin_number": 1800,
+        "min_range": 10,
+        "bin_width": 1.5
+    }
+
+}

@@ -63,7 +63,7 @@ void host_exclusive_scan(const std::vector<int>& in, std::vector<int>& out) {
     std::exclusive_scan(in.begin(), in.end(), out.begin(), 0);
 }
 
-class HDF5Writer {
+class rawDataHDF5Writer {
 private:
     std::string filename;
     size_t current_index;
@@ -74,7 +74,7 @@ private:
 
 
 public:
-    explicit HDF5Writer(const std::string& outputFilename,float fov, int height, int width);
+    explicit rawDataHDF5Writer(const std::string& outputFilename,float fov, int height, int width);
     void finalizeFile();
     void writeRecord(int collisionCount, float distance, Vec3 collisionLocation, Vec3 collisionDirection, int camera_x, int camera_y, float emission_delay);
     
@@ -94,14 +94,14 @@ private:
 };
 
 // Constructor
-HDF5Writer::HDF5Writer(const std::string& outputFilename, float fov = 50, int height = 500, int width = 500)
+rawDataHDF5Writer::rawDataHDF5Writer(const std::string& outputFilename, float fov = 50, int height = 500, int width = 500)
     : filename(outputFilename), current_index(0),
       file(H5::H5File(outputFilename, H5F_ACC_TRUNC)) {
     initializeFile(fov, height, width);
 }
 
 
-void HDF5Writer::initializeFile(float fov = 50, int image_height = 500, int image_width = 500) {
+void rawDataHDF5Writer::initializeFile(float fov = 50, int image_height = 500, int image_width = 500) {
 
     hsize_t init_size[1] = {0};  // Start with 0 records
     hsize_t max_size[1] = {H5S_UNLIMITED};  // Allow unlimited records
@@ -143,7 +143,7 @@ void HDF5Writer::initializeFile(float fov = 50, int image_height = 500, int imag
 
 
 
-void HDF5Writer::writeRecord(int collisionCount, float distance, Vec3 collisionLocation, Vec3 collisionDirection, int camera_x, int camera_y, float emission_delay) {
+void rawDataHDF5Writer::writeRecord(int collisionCount, float distance, Vec3 collisionLocation, Vec3 collisionDirection, int camera_x, int camera_y, float emission_delay) {
 
     CollisionRecord record;
     record.collisionCount = collisionCount;
@@ -179,7 +179,7 @@ void HDF5Writer::writeRecord(int collisionCount, float distance, Vec3 collisionL
 }
 
 
-void HDF5Writer::writeBatch(const std::vector<CollisionRecord>& records) {
+void rawDataHDF5Writer::writeBatch(const std::vector<CollisionRecord>& records) {
     if (records.empty()) return;
 
     hsize_t new_size[1] = { current_index + records.size() };
@@ -197,7 +197,7 @@ void HDF5Writer::writeBatch(const std::vector<CollisionRecord>& records) {
 }
 
 
-void HDF5Writer::finalizeFile() {
+void rawDataHDF5Writer::finalizeFile() {
     file.close();
 }
 

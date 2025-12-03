@@ -9,7 +9,7 @@
 #include <fstream>
 #include "common.hpp"
 #include "Utility.hpp"
-#include "FileProcessor.hpp"
+#include "rawDataFileProcessor.hpp"
 #include <chrono>
 #include <sycl/sycl.hpp>
 #include "syclScene.hpp" 
@@ -65,6 +65,7 @@ int main(int argc, char* argv[]){
   if (args.count("--delay_std") && !args["--delay_std"].empty()) delay_std= std::stof(args["--delay_std"][0]);
   Vec3 cameraPosition(0.0f, 330.0f, 250 + detectorDistance + 10); // Example camera position
   Vec3 lookAt(0.0f, 274.0f, 0.0f); // Look at the center of the Cornell Box
+  Vec3 up(0.0f, 1.0f, 0.0f); // Up direction
 
     // --- Handle Multi-Value Flags for Camera ---
     try {
@@ -83,6 +84,16 @@ int main(int argc, char* argv[]){
             }
             lookAt = Vec3(std::stof(look_vals[0]), std::stof(look_vals[1]), std::stof(look_vals[2]));
         }
+
+        if (args.count("--up"))
+        {
+          const auto& up_vals = args["--up"];
+          
+          if (up_vals.size() != 3) {
+              throw std::runtime_error("--up requires 3 float values (x y z)");
+          }
+          up = Vec3(std::stof(up_vals[0]), std::stof(up_vals[1]), std::stof(up_vals[2]));
+        }
     } catch (const std::exception& e) {
         std::cerr << "Error parsing arguments: " << e.what() << std::endl;
     }
@@ -93,7 +104,7 @@ int main(int argc, char* argv[]){
   std::string ModelName = inputFile.substr(pos);
 
 
-  Vec3 up(0.0f, 1.0f, 0.0f); // Up direction
+ 
 
   auto iterationSize = computeAdjustedSize(inputWidth,inputHeight);
   int imageWidth = iterationSize.first;
@@ -162,7 +173,7 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
     Ray ray(cameraAcc[0].getPosition(), rayDir); 
     float delay_distance = sample_delay_distance(delay_mean,delay_std,rng);
 
-    auto tem = sceneAcc[0].doRendering(ray, rng);
+    auto tem = sceneAcc[0].doSimulation(ray, rng);
     tem._emission_delay = delay_distance;    
     // out << ray.direction.x << " " << ray.direction.y << " " << ray.direction.z << sycl::endl;
     // if (tem._collisionCount !=0){
@@ -198,7 +209,7 @@ myQueue.update_host(collision_buf.get_access());
 std::cout << "finished rendering" << std::endl;
 
 
-HDF5Writer writer(outputFile, fov, imageHeight, imageWidth);
+rawDataHDF5Writer writer(outputFile, fov, imageHeight, imageWidth);
 
 
 if (collision.size() > recordNum) {

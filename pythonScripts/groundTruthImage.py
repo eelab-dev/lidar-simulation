@@ -9,8 +9,6 @@ if __name__ == "__main__":
 
     parser.add_argument("--input_file", help="Path to input photon .h5 file")
     parser.add_argument("--output_image", help="Optional output image file name (e.g., depth_image.png)")
-
-    parser.add_argument("--output_file", help="Optional output h5 file name (e.g., depth_image.png)")
     parser.add_argument("--bin_number", type=int, help="Number of histogram bins")
     parser.add_argument("--min_range", type=float, help="Minimum range value for histogram")
     parser.add_argument("--bin_width", type=float, help="The width of each bin")
@@ -21,14 +19,18 @@ if __name__ == "__main__":
     output_image_name = output_image_name.split('.')[0]
     output_image_name = output_image_name + '_depth.png'
 
+
+    args = parser.parse_args()
     range_min = 500
     bin_width = 80 
-    args = parser.parse_args()
     input_bin_number = 35
 
      # Override with CLI args
     if args.input_file:
         input_file_path = args.input_file
+
+    if args.output_image:
+        output_image_name = args.output_image
 
     if args.bin_number:
         input_bin_number = args.bin_number
@@ -39,19 +41,18 @@ if __name__ == "__main__":
     if args.bin_width:
         bin_width = args.bin_width
 
-    if args.output_image:
-        output_image_name = args.output_image
-
     range_max = range_min + input_bin_number * bin_width
     myRange = [range_min,range_max]
     pixels, image_width, image_heigh = decode_file(input_file_path)
+
     # print(pixels[200][300])
-    
+    print(image_width)
+    print(image_heigh)
     # image = form_image(pixels, image_heigh,image_width)
-    image, illegal_photon, stamped_histogram, stamped_collosion = form_histogram_image(pixels,image_width,image_heigh,bin_number=input_bin_number,range_distance=myRange,peak_func=center_of_mass_peak)
+    image = from_groundTruth_image(pixels,image_width,image_heigh)
     # stamped_histogram= np.rot90(stamped_histogram, k=-1, axes=(0, 1))
     # stamped_collosioin= np.rot90(stamped_collosioin, k=-1, axes=(0, 1))
-    # image = np.rot90(image, k=-1)
+    # image = np.rot90(image, k=-2)
     # stamped_histogram = stamped_histogram[::-1, ...]
     # stamped_collosioin = stamped_collosioin[::-1, ...]
     # image = image[::-1, ...]
@@ -59,17 +60,6 @@ if __name__ == "__main__":
     right_index = 180 + 8 
     bottom_index = 35  
     top_index = 143 
-    print(np.sum(stamped_histogram))
     # image_width, image_heigh, bin_width, stamped_histogram, stamped_collosion = crop_image(left_index,right_index,bottom_index,top_index,stamped_histogram,stamped_collosion)
     save_image(image,None,output_image_name,distance_range=myRange)
-    if args.output_file:
-        outputFile = args.output_file
-        save_histogram_to_h5(outputFile, stamped_histogram, stamped_collosion ,range_min, range_max, image_width, image_heigh, input_bin_number)
-
-
-
-
-
-
-
-
+ 

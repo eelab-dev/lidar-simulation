@@ -21,6 +21,11 @@ public:
         return Vec3(x / n, y / n, z / n);
     }
 
+    Vec3 normalized() const {
+        myComputeType n = std::sqrt(x * x + y * y + z * z);
+        return Vec3(x / n, y / n, z / n);
+    }
+
     myComputeType operator[](int index) const {
         // Assuming index is 0, 1, or 2, corresponding to x, y, z
         switch (index) {
