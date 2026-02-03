@@ -93,7 +93,7 @@ def form_average_image(pixels, image_width, image_heigh):
                 image[i][j] = 0
     return image
 
-def center_of_mass_peak(bins: np.ndarray) -> float:
+def center_of_mass(bins: np.ndarray) -> float:
     """
     Return the index of the histogram's center of mass.
 
@@ -114,6 +114,38 @@ def center_of_mass_peak(bins: np.ndarray) -> float:
 
     # make sure it's within [0, len(bins)-1]
     return idx
+
+def peak_found_center_of_mass(bins: np.ndarray,peak_range: int = 8) -> float:
+    
+    total = bins.sum()
+    if total <= 0:
+        # no photons in this pixel, fall back to 0 (or any convention you like)
+        return 0   
+    
+    mid = np.argmax(bins)
+    upper = peak_range // 2 + mid + 1
+    low = upper - peak_range
+    bin_num = bins.shape[0]
+    
+    low = max(0,low) 
+    upper = min(bin_num - 1,upper) 
+
+    indices = np.array(range(low,upper))
+    total = 0
+    com = 0
+    for i in indices:
+       com = i * bins[i] + com
+       total = total + bins[i] 
+    idx = com / total
+
+    if idx < 0 or idx >= bins.shape[0] -1:
+        return -1
+
+    # make sure it's within [0, len(bins)-1]
+    return idx
+        
+    
+
 
 def from_groundTruth_image(pixels,image_width,image_height):
     

@@ -48,13 +48,13 @@ if __name__ == "__main__":
     # print(pixels[200][300])
     
     # image = form_image(pixels, image_heigh,image_width)
-    image, illegal_photon, stamped_histogram, stamped_collosion = form_histogram_image(pixels,image_width,image_heigh,bin_number=input_bin_number,range_distance=myRange,peak_func=center_of_mass_peak)
+    image, illegal_photon, stamped_histogram, stamped_collosion = form_histogram_image(pixels,image_width,image_heigh,bin_number=input_bin_number,range_distance=myRange,peak_func=peak_found_center_of_mass)
     # stamped_histogram= np.rot90(stamped_histogram, k=-1, axes=(0, 1))
     # stamped_collosioin= np.rot90(stamped_collosioin, k=-1, axes=(0, 1))
     # image = np.rot90(image, k=-1)
     # stamped_histogram = stamped_histogram[::-1, ...]
     # stamped_collosioin = stamped_collosioin[::-1, ...]
-    # image = image[::-1, ...]
+    # image = image[::-1, ...],
     left_index = 70 + 8 
     right_index = 180 + 8 
     bottom_index = 35  

@@ -13,7 +13,7 @@ conda activate lidarSimulation
 
 # config="ADS6311/positive/ADS_positive.json"
 # config="ADS_calibration/ADS_calibration.json"
-config="usdTest/usdTestGroundtruth.json"
+config="room1/usdTestGroundtruth.json"
 # config="ADS6311/negative/ADS_negative.json"
 config_dir=$(dirname "$config")
 
