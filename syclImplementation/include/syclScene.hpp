@@ -133,8 +133,10 @@ class syclScene
                     result._hit = false;
                     return result;
                 }
-
-                if(get_random_float(rng) > 0.9)
+                auto intersectionID = intersection._objectIndex;
+                const Material* intersectionMaterial = _sceneObject.getMaterial(intersectionID);
+                float diffuse_factor = intersectionMaterial->_reflectivity;
+                if(get_random_float(rng) > diffuse_factor)
                 {
                     result._hit = false;
                     return result;
@@ -144,8 +146,7 @@ class syclScene
                 result._travelDistance = result._travelDistance + (intersection._position - currentRay.origin).length();
                 result._collisionCount++;
                 
-                auto intersectionID = intersection._objectIndex;
-                const Material* intersectionMaterial = _sceneObject.getMaterial(intersectionID);
+
 
                 if (intersectionMaterial->isDetector())
                 {
