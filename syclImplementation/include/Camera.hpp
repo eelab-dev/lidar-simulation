@@ -10,8 +10,8 @@ class Camera {
 public:
     float detectorWidth;
     float detectorHeight;
-    Camera(int width, int height, myComputeType fov, const Vec3& position, const Vec3& lookAt, const Vec3& up, float detectorWidth = 20, float detectorHeight = 20)
-        : width(width), height(height), fov(fov), position(position), lookAt(lookAt), up(up), detectorWidth(detectorWidth) ,detectorHeight(detectorHeight) {
+    Camera(int width, int height, myComputeType fov_x,myComputeType fov_y, const Vec3& position, const Vec3& lookAt, const Vec3& up, float detectorWidth = 20, float detectorHeight = 20)
+        : detectorWidth(detectorWidth),detectorHeight(detectorHeight),width(width), height(height), fov_x(fov_x), fov_y(fov_y), position(position), lookAt(lookAt), up(up)  {
         updateBasis();
     }
 
@@ -31,15 +31,16 @@ public:
     }
 
     Vec3 getRayDirection(myComputeType x, myComputeType y, RNG &rng) const {
-        myComputeType aspectRatio = static_cast<myComputeType>(width) / static_cast<myComputeType>(height);
-        myComputeType halfFovTan = std::tan(Radians(fov) * 0.5f);
+        // myComputeType aspectRatio = static_cast<myComputeType>(width) / static_cast<myComputeType>(height);
+        myComputeType halfFovTanX = std::tan(Radians(fov_x) * 0.5f);
+        myComputeType halfFovTanY = std::tan(Radians(fov_y) * 0.5f);
         myComputeType randomX = get_random_float(rng);
         myComputeType randomY = get_random_float(rng);
 
         //float viewX = (2.0f * (x + 0.5f) / width - 1.0f) * aspectRatio * halfFovTan;
         //float viewY = (2.0f * (y + 0.5f) / height - 1.0f) * halfFovTan;
-        myComputeType viewX = (2.0f * (x + randomX) / width - 1.0f) * aspectRatio * halfFovTan;
-        myComputeType viewY = (1.0f- 2.0f * (y + randomY) / height ) * halfFovTan;
+        myComputeType viewX = (2.0f * (x + randomX) / width - 1.0f) *  halfFovTanX;
+        myComputeType viewY = (1.0f- 2.0f * (y + randomY) / height ) * halfFovTanY;
 
         Vec3 rayDir = (viewX * right + viewY * up + forward).normalized();
         return rayDir;
@@ -92,7 +93,7 @@ public:
 
 private:
     int width, height;
-    myComputeType fov;
+    myComputeType fov_x,fov_y;
     Vec3 position, lookAt, up, right, forward;
 
     // void updateBasis() {

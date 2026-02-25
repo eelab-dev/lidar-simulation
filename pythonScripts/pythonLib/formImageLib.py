@@ -131,12 +131,20 @@ def peak_found_center_of_mass(bins: np.ndarray,peak_range: int = 8) -> float:
     upper = min(bin_num - 1,upper) 
 
     indices = np.array(range(low,upper))
-    total = 0
-    com = 0
+    total = 0.0
+    com = 0.0
     for i in indices:
        com = i * bins[i] + com
        total = total + bins[i] 
-    idx = com / total
+    try:
+        if total <= 0:
+            raise ValueError("Empty peak window: total weight is zero.")
+        idx = com / total
+        if not np.isfinite(idx):
+            raise FloatingPointError("Center-of-mass result is not finite.")
+    except (ValueError, ZeroDivisionError, FloatingPointError):
+        # Fallback to the strongest-bin index when COM cannot be computed safely.
+        return float(mid)
 
     if idx < 0 or idx >= bins.shape[0] -1:
         return -1

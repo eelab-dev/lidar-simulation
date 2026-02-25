@@ -1,5 +1,5 @@
+use hdf5::{types::VarLenArray, File, H5Type};
 use ndarray::Array2;
-use hdf5::{File, types::VarLenArray, H5Type};
 use std::f64;
 use std::path::Path;
 
@@ -20,10 +20,20 @@ pub struct Ray {
 }
 
 impl Ray {
-    pub fn new(x: f64, y: f64, z: f64,
-               dx: f64, dy: f64, dz: f64,
-               collision: i32, distance: f64, camera_x:i32, camera_y:i32, line_index: usize) -> Self {
-        let length = (dx*dx + dy*dy + dz*dz).sqrt();
+    pub fn new(
+        x: f64,
+        y: f64,
+        z: f64,
+        dx: f64,
+        dy: f64,
+        dz: f64,
+        collision: i32,
+        distance: f64,
+        camera_x: i32,
+        camera_y: i32,
+        line_index: usize,
+    ) -> Self {
+        let length = (dx * dx + dy * dy + dz * dz).sqrt();
         Self {
             x,
             y,
@@ -51,7 +61,8 @@ pub struct PhotonRecord {
 #[derive(Debug)]
 pub struct Detector {
     pub focal_length: f64,
-    pub field_of_view: f64,
+    pub field_of_view_x: f64,
+    pub field_of_view_y: f64,
     pub resolution_width: usize,
     pub resolution_height: usize,
 
@@ -72,10 +83,11 @@ pub struct Detector {
 }
 
 impl Detector {
-    pub fn new(focal_length: f64, fov: f64, width: usize, height: usize) -> Self {
-        let angle_rad = (fov / 2.0).to_radians();
-        let detector_height = focal_length * (angle_rad.tan()) * 2.0;
-        let detector_width = detector_height * (width as f64 / height as f64);
+    pub fn new(focal_length: f64, fov_x: f64, fov_y: f64, width: usize, height: usize) -> Self {
+        let angle_x_rad = (fov_x / 2.0).to_radians();
+        let angle_y_rad = (fov_y / 2.0).to_radians();
+        let detector_width = focal_length * (angle_x_rad.tan()) * 2.0;
+        let detector_height = focal_length * (angle_y_rad.tan()) * 2.0;
         let origin_x = -detector_width / 2.0;
         let origin_y = -detector_height / 2.0;
         let width_resolution = detector_width / width as f64;
@@ -88,7 +100,8 @@ impl Detector {
 
         Self {
             focal_length,
-            field_of_view: fov,
+            field_of_view_x: fov_x,
+            field_of_view_y: fov_y,
             resolution_width: width,
             resolution_height: height,
 
@@ -109,13 +122,16 @@ impl Detector {
         }
     }
 
+    pub fn new_symmetric(focal_length: f64, fov: f64, width: usize, height: usize) -> Self {
+        Self::new(focal_length, fov, fov, width, height)
+    }
+
     pub fn flashLidar_photon_to_detector(&mut self, photon: &Ray) {
         if photon.collision == 0 {
             return;
         }
 
-        if (photon.dz > 0.0)
-        {
+        if (photon.dz > 0.0) {
             return;
         }
 
@@ -124,11 +140,15 @@ impl Detector {
         let mut y = t * photon.dy;
 
         let pixel_x = ((x - self.origin_x) / self.width_resolution) as isize;
-        let pixel_y =  ((y - self.origin_y) / self.height_resolution) as isize;
+        let pixel_y = ((y - self.origin_y) / self.height_resolution) as isize;
 
-        if pixel_x >= 0 && pixel_x < self.resolution_width  as isize && pixel_y >= 0 && pixel_y < self.resolution_height as isize {
+        if pixel_x >= 0
+            && pixel_x < self.resolution_width as isize
+            && pixel_y >= 0
+            && pixel_y < self.resolution_height as isize
+        {
             let x = pixel_x as usize;
-            let y = (self.resolution_height - (pixel_y as usize)  - 1) as usize;
+            let y = (self.resolution_height - (pixel_y as usize) - 1) as usize;
 
             self.pixel_array_count[(x, y)] += 1;
             self.pixel_array[(x, y)] += photon.distance;
@@ -137,42 +157,35 @@ impl Detector {
             self.min_distance = self.min_distance.min(photon.distance);
             self.max_distance = self.max_distance.max(photon.distance);
         }
-
     }
 
     pub fn scanLidar_photon_to_detector(&mut self, photon: &Ray) {
-            if photon.collision == 0 {
-                return;
-            }
+        if photon.collision == 0 {
+            return;
+        }
 
-            if (photon.dz > 0.0)
-            {
-                return;
-            }
+        if (photon.dz > 0.0) {
+            return;
+        }
 
-            let x = photon.camera_x;
-            let y = photon.camera_y;
+        let x = photon.camera_x;
+        let y = photon.camera_y;
 
-            if x >= 0 && y >= 0 &&
-            x < self.resolution_width as i32 && y < self.resolution_height as i32 {
+        if x >= 0 && y >= 0 && x < self.resolution_width as i32 && y < self.resolution_height as i32
+        {
+            let mut index_x = x as usize;
+            let index_y = y as usize;
+            index_x = self.resolution_width - index_x - 1;
 
-                let mut index_x = x as usize;
-                let index_y = y as usize;
-                index_x = self.resolution_width - index_x - 1;
+            self.pixel_array_count[(index_x, index_y)] += 1;
+            self.pixel_array[(index_x, index_y)] += photon.distance;
+            self.pixel_output_array[index_x][index_y]
+                .push((photon.distance as f32, photon.collision));
 
-                self.pixel_array_count[(index_x, index_y)] += 1;
-                self.pixel_array[(index_x, index_y)] += photon.distance;
-                self.pixel_output_array[index_x][index_y].push((photon.distance as f32, photon.collision));
-
-                self.min_distance = self.min_distance.min(photon.distance);
-                self.max_distance = self.max_distance.max(photon.distance);
-            }
+            self.min_distance = self.min_distance.min(photon.distance);
+            self.max_distance = self.max_distance.max(photon.distance);
+        }
     }
-
-    
-
-
-
 
     pub fn generate_depth_image(&mut self) {
         for x in 0..self.resolution_width {
@@ -192,9 +205,8 @@ impl Detector {
         let shape = (self.resolution_width, self.resolution_height);
 
         // Initialize Array2 of VarLenArray<PhotonRecord>
-        let mut data: Array2<VarLenArray<PhotonRecord>> = Array2::from_shape_simple_fn(shape, || {
-            VarLenArray::from_slice(&[])
-        });
+        let mut data: Array2<VarLenArray<PhotonRecord>> =
+            Array2::from_shape_simple_fn(shape, || VarLenArray::from_slice(&[]));
 
         // Fill the array with actual data
         for x in 0..self.resolution_width {
@@ -219,8 +231,18 @@ impl Detector {
         dataset.write(&data)?;
 
         // Add metadata attributes
-        file.new_attr::<u32>().create("width")?.write_scalar(&(self.resolution_width as u32))?;
-        file.new_attr::<u32>().create("height")?.write_scalar(&(self.resolution_height as u32))?;
+        file.new_attr::<f64>()
+            .create("FOV_X")?
+            .write_scalar(&self.field_of_view_x)?;
+        file.new_attr::<f64>()
+            .create("FOV_Y")?
+            .write_scalar(&self.field_of_view_y)?;
+        file.new_attr::<u32>()
+            .create("width")?
+            .write_scalar(&(self.resolution_width as u32))?;
+        file.new_attr::<u32>()
+            .create("height")?
+            .write_scalar(&(self.resolution_height as u32))?;
         Ok(())
     }
 }
@@ -230,7 +252,6 @@ pub struct FailedRayRecord {
     pub index: usize,
     pub error: String,
 }
-
 
 #[derive(H5Type, Clone, Debug)]
 #[repr(C)]
@@ -300,10 +321,55 @@ pub fn read_raw_data<P: AsRef<std::path::Path>>(file_name: P) -> (Vec<Ray>, Vec<
     (photons, failed_lines)
 }
 
-pub fn read_file_parameter<P: AsRef<std::path::Path>>(file_name: P) -> hdf5::Result<(f64, usize, usize)> {
+fn read_attr_f64_any(file: &File, names: &[&str]) -> hdf5::Result<f64> {
+    let mut last_err = None;
+    for &name in names {
+        match file.attr(name) {
+            Ok(attr) => match attr.read_scalar::<f64>() {
+                Ok(v) => return Ok(v),
+                Err(_) => match attr.read_scalar::<f32>() {
+                    Ok(v) => return Ok(v as f64),
+                    Err(e) => last_err = Some(e),
+                },
+            },
+            Err(e) => last_err = Some(e),
+        }
+    }
+    Err(last_err.unwrap_or_else(|| hdf5::Error::Internal("missing float attribute".into())))
+}
+
+fn read_attr_usize_any(file: &File, names: &[&str]) -> hdf5::Result<usize> {
+    let mut last_err = None;
+    for &name in names {
+        match file.attr(name) {
+            Ok(attr) => {
+                if let Ok(v) = attr.read_scalar::<u32>() {
+                    return Ok(v as usize);
+                }
+                if let Ok(v) = attr.read_scalar::<i32>() {
+                    return Ok(v as usize);
+                }
+                if let Ok(v) = attr.read_scalar::<u64>() {
+                    return Ok(v as usize);
+                }
+                match attr.read_scalar::<i64>() {
+                    Ok(v) => return Ok(v as usize),
+                    Err(e) => last_err = Some(e),
+                }
+            }
+            Err(e) => last_err = Some(e),
+        }
+    }
+    Err(last_err.unwrap_or_else(|| hdf5::Error::Internal("missing integer attribute".into())))
+}
+
+pub fn read_file_parameter<P: AsRef<std::path::Path>>(
+    file_name: P,
+) -> hdf5::Result<(f64, f64, usize, usize)> {
     let file = File::open(file_name)?;
-    let fov = file.attr("FOV")?.read_scalar::<f64>()?;
-    let height = file.attr("ImageHeight")?.read_scalar::<u32>()? as usize;
-    let width = file.attr("ImageWidth")?.read_scalar::<u32>()? as usize;
-    Ok((fov, height, width))
+    let fov_x = read_attr_f64_any(&file, &["FOV_X", "FOV"])?;
+    let fov_y = read_attr_f64_any(&file, &["FOV_Y", "FOV"])?;
+    let height = read_attr_usize_any(&file, &["height", "ImageHeight"])?;
+    let width = read_attr_usize_any(&file, &["width", "ImageWidth"])?;
+    Ok((fov_x, fov_y, height, width))
 }

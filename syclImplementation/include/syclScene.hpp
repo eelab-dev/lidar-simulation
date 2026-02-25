@@ -135,9 +135,7 @@ class syclScene
                 }
                 auto intersectionID = intersection._objectIndex;
                 const Material* intersectionMaterial = _sceneObject.getMaterial(intersectionID);
-                float diffuse_factor = intersectionMaterial->_reflectivity;
-                if(get_random_float(rng) > diffuse_factor)
-                {
+                if (intersectionMaterial == nullptr) {
                     result._hit = false;
                     return result;
                 }
@@ -157,20 +155,22 @@ class syclScene
                     
                     return result;
                 }
+
+                float diffuse_factor = clamp(intersectionMaterial->_reflectivity, 0.0f, 1.0f);
+                if(get_random_float(rng) > diffuse_factor)
+                {
+                    result._hit = false;
+                    return result;
+                }
      
 
                 const float EPSILON = 1e-5f;
                 Vec3 normal = intersection._normal.normalized();
-                // Vec3 offset = normal * EPSILON;
-
-                // // Avoid biasing into the surface for transmission rays
-                // if (dotProduct(currentRay.direction, normal) > 0.0f) {
-                //     offset = -offset;
-                // }
-
-                // Vec3 safeOrigin = intersection._position + offset;
-
-                Vec3 safeOrigin = intersection._position ;
+                Vec3 offset = normal * EPSILON;
+                if (dotProduct(currentRay.direction, normal) > 0.0f) {
+                    offset = -offset;
+                }
+                Vec3 safeOrigin = intersection._position + offset;
                 Vec3 newDirection = intersectionMaterial->sample(currentRay.direction, normal, rng);
                 currentRay = Ray(safeOrigin, newDirection);           
             }
@@ -227,7 +227,6 @@ class syclScene
 
 
 };
-
 
 
 

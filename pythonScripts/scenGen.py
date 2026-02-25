@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # Wall plate
     scene_obj.create_box_with_material(
         [box_width*5, box_height*5, 1],
-        [0, (box_height*5)/2, -box_depth/2 - 300],
+        [0, (box_height*5)/2, -box_depth/2 - 200],
         "white",
         "wall"
     )

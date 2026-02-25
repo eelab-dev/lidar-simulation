@@ -83,7 +83,7 @@ private:
 
 
 public:
-    explicit pixelizedHDF5Writer(const std::string& outputFilename,float fov, int height, int width);
+    explicit pixelizedHDF5Writer(const std::string& outputFilename,float fov_x, float fov_y, int height, int width);
     void finalizeFile();
     void writeRecord(int collisionCount, float distance, Vec3 collisionLocation, Vec3 collisionDirection, int camera_x, int camera_y, float emission_delay);
     
@@ -97,20 +97,20 @@ public:
 
     void writeBatch(const std::vector<CollisionRecord>& records, int image_width, int image_height);
 private:
-    void initializeFile(float fov,int height,int width);
+    void initializeFile(float fov_x, float fov_y, int height,int width);
     
 
 };
 
 // Constructor
-pixelizedHDF5Writer::pixelizedHDF5Writer(const std::string& outputFilename, float fov = 50, int height = 500, int width = 500)
+pixelizedHDF5Writer::pixelizedHDF5Writer(const std::string& outputFilename, float fov_x = 50, float fov_y = 50, int height = 500, int width = 500)
     : filename(outputFilename), current_index(0),
       file(H5::H5File(outputFilename, H5F_ACC_TRUNC)) {
-    initializeFile(fov, height, width);
+    initializeFile(fov_x,fov_y, height, width);
 }
 
 
-void pixelizedHDF5Writer::initializeFile(float fov = 50, int image_height = 500, int image_width = 500) {
+void pixelizedHDF5Writer::initializeFile(float fov_x = 50, float fov_y = 50, int image_height = 500, int image_width = 500) {
 
     // hsize_t init_size[1] = {0};  // Start with 0 records
     // hsize_t max_size[1] = {H5S_UNLIMITED};  // Allow unlimited records
@@ -168,7 +168,9 @@ void pixelizedHDF5Writer::initializeFile(float fov = 50, int image_height = 500,
     int width_attr  = image_width;
     int height_attr = image_height;
 
-    file.createAttribute("FOV",H5::PredType::NATIVE_FLOAT,scalarSpace).write(H5::PredType::NATIVE_FLOAT, &fov);
+    file.createAttribute("FOV_X",H5::PredType::NATIVE_FLOAT,scalarSpace).write(H5::PredType::NATIVE_FLOAT, &fov_x);
+
+    file.createAttribute("FOV_Y",H5::PredType::NATIVE_FLOAT,scalarSpace).write(H5::PredType::NATIVE_FLOAT, &fov_y);
 
     file.createAttribute("width",H5::PredType::NATIVE_INT,scalarSpace).write(H5::PredType::NATIVE_INT, &width_attr);
 

@@ -22,7 +22,8 @@ int main(int argc, char* argv[]){
   std::string outputFile = "./outputtest.h5";
   int inputWidth = 100;
   int inputHeight = 100;
-  float fov = 40.0f; // Field of view in degrees
+  float fov_y = 40.0f; // Field of view in degrees
+  float fov_x = 40.0f; // Field of view in degrees
   int ssp = 500*1000*25;
   unsigned int seed = 123;  
   float detectorDistance = 560;
@@ -53,7 +54,8 @@ int main(int argc, char* argv[]){
   if (args.count("--output") && !args["--output"].empty()) outputFile = args["--output"][0];
   if (args.count("--width") && !args["--width"].empty()) inputWidth = std::stoi(args["--width"][0]);
   if (args.count("--height") && !args["--height"].empty()) inputHeight = std::stoi(args["--height"][0]);
-  if (args.count("--fov") && !args["--fov"].empty()) fov = std::stof(args["--fov"][0]);
+  if (args.count("--fov_x") && !args["--fov_x"].empty()) fov_x = std::stof(args["--fov_x"][0]);
+  if (args.count("--fov_y") && !args["--fov_y"].empty()) fov_y = std::stof(args["--fov_y"][0]);
   if (args.count("--ssp") && !args["--ssp"].empty()) ssp = std::stoi(args["--ssp"][0]);
   if (args.count("--seed") && !args["--seed"].empty()) seed = std::stoi(args["--seed"][0]);
   if (args.count("--detectorDistance") && !args["--detectorDistance"].empty()) detectorDistance = std::stof(args["--detectorDistance"][0]);
@@ -117,7 +119,8 @@ int main(int argc, char* argv[]){
 
   OBJ_Loader loader;
   loader.addTriangleUSDFile(ModelDir, ModelName);  
-  Camera camera(imageWidth, imageHeight, fov, cameraPosition, lookAt, up, detectorWidth, detectorHeight);
+  std::cout << up[0] << " " << up[1] << " " << up[2] << std::endl;
+  Camera camera(imageWidth, imageHeight, fov_x, fov_y, cameraPosition, lookAt, up, detectorWidth, detectorHeight);
   loader.addCamera(&camera);
  
 Triangle_OBJ_result TriangleResult = loader.outputTrangleResult();
@@ -189,15 +192,18 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
             sycl::access::address_space::global_space>(counter_acc[0]);
 
       int idx = v_counter.fetch_add(1);  
-      collision_acc[idx].collisionCount = tem._collisionCount;
-      tem._emission_delay = 0;      
-      collision_acc[idx].distance = tem._travelDistance + tem._emission_delay;
-      collision_acc[idx].collisionLocation = tem._position;
-      collision_acc[idx].collisionDirection = cameraAcc[0].toCameraBase(tem._direction);
-      collision_acc[idx].camera_x = i/widthUnit;
-      collision_acc[idx].camera_y = j/heightUnit;
+      if (idx < static_cast<int>(recordSize))
+      {
+        collision_acc[idx].collisionCount = tem._collisionCount;
+        tem._emission_delay = 0;      
+        collision_acc[idx].distance = tem._travelDistance + tem._emission_delay;
+        collision_acc[idx].collisionLocation = tem._position;
+        collision_acc[idx].collisionDirection = cameraAcc[0].toCameraBase(tem._direction);
+        collision_acc[idx].camera_x = i/widthUnit;
+        collision_acc[idx].camera_y = j/heightUnit;
 
-      collision_acc[idx].emission_delay = tem._emission_delay;
+        collision_acc[idx].emission_delay = tem._emission_delay;
+      }
     }
   }
 
@@ -209,7 +215,7 @@ myQueue.update_host(collision_buf.get_access());
 std::cout << "finished rendering" << std::endl;
 
 
-rawDataHDF5Writer writer(outputFile, fov, imageHeight, imageWidth);
+rawDataHDF5Writer writer(outputFile,fov_x,fov_y,imageHeight, imageWidth);
 
 
 if (collision.size() > recordNum) {

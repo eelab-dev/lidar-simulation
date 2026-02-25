@@ -19,14 +19,17 @@ conda activate lidarSimulation
 
 # config="ADS6311/positive/ADS_positive.json"
 # config="ADS_calibration/ADS_calibration.json"
-config="room2/room_2_simulation.json"
+# config="room1/room_1_simulation.json"
 # config="ADS6311/negative/ADS_negative.json"
+
+config="tmf8829_nls/tmf8829_nls_positive.json"
 config_dir=$(dirname "$config")
 
 endIndex=$(jq -r '.global_settings.end_index// empty' "$config")
 global_prefix=$(jq -r '.global_settings.global_prefix // empty' "$config")
 detector_distance=$(jq -r '.global_settings.detector_distance// empty' "$config") 
-inputFov=$(jq -r '.global_settings.fov// empty' "$config")
+inputFov_x=$(jq -r '.global_settings.fov_x// empty' "$config")
+inputFov_y=$(jq -r '.global_settings.fov_y// empty' "$config")
 startIndex=$(jq -r '.global_settings.start_index// empty' "$config")
 
 
@@ -89,7 +92,7 @@ do
         model_dir=$(jq -r '.model_generation.output_model_dir // "model"' "$config")
         model_dir="${config_dir}/${model_dir}"
         mkdir -p "$model_dir"
-        model_file="${global_prefix}_obj_${i}.obj"
+        model_file="${global_prefix}_obj_${i}.usda"
         model_file_path="${model_dir}/${model_file}"
 
         # ✅ Initialize simulation_flag with a leading space
@@ -112,7 +115,7 @@ do
         input_model_dir=$(jq -r '.objectRemove_process.input_model_dir' "$config")
         input_model_dir="${config_dir}/${input_model_dir}"
         input_model_file_prefix=$(jq -r '.objectRemove_process.input_model_file_prefix' "$config")
-        input_model_file="${input_model_file_prefix}_obj_${i}.obj"
+        input_model_file="${input_model_file_prefix}_obj_${i}.usda"
         input_model_file_path="${input_model_dir}/${input_model_file}"
 
         if [ -f "$input_model_file_path" ]; then
@@ -138,7 +141,7 @@ do
     if jq -e '.simulation_generation | length > 0' "$config" > /dev/null 2>&1; then
         input_model_dir=$(jq -r '.simulation_generation.input_model_dir // "model"' "$config")
         input_model_dir="${config_dir}/${input_model_dir}"
-        input_model_file="${global_prefix}_obj_${i}.obj"
+        input_model_file="${global_prefix}_obj_${i}.usda"
         if jq -e '.simulation_generation.static_model' "$config" > /dev/null 2>&1; then
             input_model_file=$(jq -r '.simulation_generation.static_model' "$config")
         fi
@@ -245,8 +248,12 @@ do
                 simulation_flag+=" --detectorDistance ${detector_distance}"
             fi
 
-            if [ -n "$inputFov" ]; then
-                simulation_flag+=" --fov ${inputFov}"
+            if [ -n "$inputFov_x" ]; then
+                simulation_flag+=" --fov_x ${inputFov_x}"
+            fi
+
+            if [ -n "$inputFov_y" ]; then
+                simulation_flag+=" --fov_y ${inputFov_y}"
             fi
             echo $simulation_flag
 

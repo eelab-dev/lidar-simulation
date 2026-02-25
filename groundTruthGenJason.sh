@@ -15,6 +15,7 @@ conda activate lidarSimulation
 # config="ADS_calibration/ADS_calibration.json"
 config="room2/room_2_groundtruth.json"
 # config="ADS6311/negative/ADS_negative.json"
+# config="tmf8829_nls/tmf8829_nls_positive.json"
 config_dir=$(dirname "$config")
 
 endIndex=$(jq -r '.global_settings.end_index// empty' "$config")

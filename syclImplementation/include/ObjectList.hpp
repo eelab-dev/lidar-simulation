@@ -83,23 +83,27 @@ struct ObjectListContent
             _materialList = sycl::malloc_shared<Material*>(materialInfoList.size(), _myQueue);
             _diffuseMaterialList = sycl::malloc_shared<diffuseMaterial>(materialInfo.diffuseMaterialNum,_myQueue);
             _detectorMaterialList = sycl::malloc_shared<Material>(materialInfo.detectorMaterialNum,_myQueue);
+            size_t diffuseIndex = 0;
+            size_t detectorIndex = 0;
             for (size_t i = 0; i < materialInfoList.size(); i++)
             {
                 //_diffuseList[i] = diffuseMaterial(materialInfoList[i]._emission, materialInfoList[i]._specular, materialInfoList[i]._diffuse);
                 if (materialInfoList[i]._type == DIFFUSE)
                 {
                     diffuseMaterial material(materialInfoList[i]._reflectivity);
-                    _myQueue.memcpy(_diffuseMaterialList+i, &material, sizeof(diffuseMaterial)).wait();
-                    _materialList[_gloablMaterialIndex] = &_diffuseMaterialList[i];
+                    _myQueue.memcpy(_diffuseMaterialList + diffuseIndex, &material, sizeof(diffuseMaterial)).wait();
+                    _materialList[_gloablMaterialIndex] = &_diffuseMaterialList[diffuseIndex];
                     _diffuseMaterialListSize++;
+                    diffuseIndex++;
                 }
                 else if(materialInfoList[i]._type == DETECTOR)
                 {
                     Material material(DETECTOR);
 
-                    _myQueue.memcpy(_detectorMaterialList+i, &material, sizeof(Material)).wait();
-                    _materialList[_gloablMaterialIndex] = &_detectorMaterialList[i];
+                    _myQueue.memcpy(_detectorMaterialList + detectorIndex, &material, sizeof(Material)).wait();
+                    _materialList[_gloablMaterialIndex] = &_detectorMaterialList[detectorIndex];
                     _detectorMaterialListSize++;
+                    detectorIndex++;
                 }
 
                 _materialListSize++;
@@ -479,12 +483,16 @@ Intersection BVHArray::getIntersection(const long index, const Ray &ray,
   inter._hit = false;
   inter._distance = INFINITY;
 
-  BVHNode *stack[50] = {&(_array[index])};
-  int stackCount = 1;
+  constexpr int kMaxTraversalStack = 256;
+  long stack[kMaxTraversalStack];
+  int stackCount = 0;
+  bool stackOverflowed = false;
+  stack[stackCount++] = index;
 
   while (stackCount != 0) {
     stackCount--;
-    BVHNode *curNode = stack[stackCount];
+    long curNodeIndex = stack[stackCount];
+    BVHNode *curNode = &_array[curNodeIndex];
     long curLeft = curNode->_leftIndex;
     long curRight = curNode->_rightIndex;
 
@@ -496,10 +504,6 @@ Intersection BVHArray::getIntersection(const long index, const Ray &ray,
     if (curNode->_objectIndex >= 0) {
       auto curObjectIndex = curNode->_objectIndex;
       Intersection tmp = objects->getIntersection(ray, curObjectIndex);
-      if (tmp._hit && inter._distance > tmp._distance) {
-        inter = tmp;
-      }
-      // Only accept this intersection if it's far enough away to avoid self-intersection
       if (tmp._hit && tmp._distance > EPSILON && tmp._distance < inter._distance) {
         inter = tmp;
       }
@@ -508,13 +512,33 @@ Intersection BVHArray::getIntersection(const long index, const Ray &ray,
 
     // add left
     if (haveNode(curLeft)) {
-      stack[stackCount] = &_array[curLeft];
+      if (stackCount >= kMaxTraversalStack) {
+        stackOverflowed = true;
+        break;
+      }
+      stack[stackCount] = curLeft;
       stackCount++;
     }
 
     if (haveNode(curRight)) {
-      stack[stackCount] = &_array[curRight];
+      if (stackCount >= kMaxTraversalStack) {
+        stackOverflowed = true;
+        break;
+      }
+      stack[stackCount] = curRight;
       stackCount++;
+    }
+  }
+
+  if (stackOverflowed) {
+    inter = Intersection();
+    inter._distance = INFINITY;
+    const size_t objectCount = objects->getObjectsListSize();
+    for (size_t i = 0; i < objectCount; i++) {
+      Intersection tmp = objects->getIntersection(ray, static_cast<long>(i));
+      if (tmp._hit && tmp._distance > EPSILON && tmp._distance < inter._distance) {
+        inter = tmp;
+      }
     }
   }
 
