@@ -22,7 +22,7 @@ conda activate lidarSimulation
 # config="room1/room_1_simulation.json"
 # config="ADS6311/negative/ADS_negative.json"
 
-config="tmf8829_nls/tmf8829_nls_positive.json"
+config="general_positive/general_positive.json"
 config_dir=$(dirname "$config")
 
 endIndex=$(jq -r '.global_settings.end_index// empty' "$config")
@@ -80,6 +80,12 @@ do
         simulation_flag+=" --detector_height ${detectorHeight}"
         simulation_flag+=" --delay_mean ${delay_mean}"
         simulation_flag+=" --delay_std ${delay_std}"
+        if jq -e '.camera_setting.up and (.camera_setting.up | type == "array") and (.camera_setting.up | length == 3)' "$config" > /dev/null 2>&1; then
+            up_x=$(jq -r '.camera_setting.up[0]' "$config")
+            up_y=$(jq -r '.camera_setting.up[1]' "$config")
+            up_z=$(jq -r '.camera_setting.up[2]' "$config")
+            simulation_flag+=" --up ${up_x} ${up_y} ${up_z}"
+        fi
 
         python3 pythonScripts/generateCamera.py \
         $simulation_flag || { 

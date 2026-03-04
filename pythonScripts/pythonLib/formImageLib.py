@@ -197,7 +197,7 @@ def form_histogram_image(pixels, image_width, image_height,bin_number = 25, rang
                     stamped_histogram[i, j, bin_index] += 1
                     stamped_collosion[i,j, bin_index] += collosion
             for k in range(bin_number):
-                if stamped_histogram[i,j,k] > 0:
+                if stamped_histogram[i,j].sum() > 0:
                     stamped_collosion[i,j,k] = stamped_collosion[i,j,k]/stamped_histogram[i,j,k]
                 
             max_bin_index = peak_func(stamped_histogram[i, j])

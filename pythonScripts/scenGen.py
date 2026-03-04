@@ -26,10 +26,14 @@ if __name__ == "__main__":
 
 
     materials = [
-        material_info(material_type="lambert", material_name="white",  properties={"reflectivity":0.5}),
+        material_info(material_type="lambert", material_name="white",  properties={"reflectivity":0.8}),
         material_info(material_type="lambert", material_name="red",    properties={"reflectivity":0.5}),
-        material_info(material_type="lambert", material_name="green",  properties={"reflectivity":0.5}),
+        material_info(material_type="lambert", material_name="green",  properties={"reflectivity":0.3}),
     ]
+    material_names = [m._material_name for m in materials]
+
+    def random_material():
+        return random.choice(material_names)
 
     # dims
     box_width, box_height, box_depth = 512, 512, 512
@@ -42,7 +46,7 @@ if __name__ == "__main__":
     scene_obj.create_box_with_material(
         [box_width, wall_width, box_depth],
         [0, 0.5*wall_width, 0],
-        "white",
+        random_material(),
         "floor"
     )
 
@@ -50,7 +54,7 @@ if __name__ == "__main__":
     scene_obj.create_box_with_material(
         [box_width, wall_width, box_depth],
         [0, box_height + 0.5*wall_width, 0],
-        "white",
+        random_material(),
         "ceiling"
     )
 
@@ -58,7 +62,7 @@ if __name__ == "__main__":
     scene_obj.create_box_with_material(
         [box_width, box_height + wall_width, wall_width],
         [0, box_height/2 + 0.5*wall_width, -box_depth/2],
-        "white",
+        random_material(),
         "back_wall"
     )
 
@@ -66,7 +70,7 @@ if __name__ == "__main__":
     scene_obj.create_box_with_material(
         [wall_width, box_height + wall_width, box_depth],
         [-box_width/2, box_height/2 + 0.5*wall_width, 0],
-        "red",
+        random_material(),
         "left_wall"
     )
 
@@ -74,7 +78,7 @@ if __name__ == "__main__":
     scene_obj.create_box_with_material(
         [wall_width, box_height + wall_width, box_depth],
         [ box_width/2, box_height/2 + 0.5*wall_width, 0],
-        "green",
+        random_material(),
         "right_wall"
     )
 
@@ -82,7 +86,7 @@ if __name__ == "__main__":
     scene_obj.create_box_with_material(
         [box_width*5, 1, box_depth*5],
         [0, 0, 0],
-        "white",
+        random_material(),
         "ground"
     )
 
@@ -90,7 +94,7 @@ if __name__ == "__main__":
     scene_obj.create_box_with_material(
         [box_width*5, box_height*5, 1],
         [0, (box_height*5)/2, -box_depth/2 - 200],
-        "white",
+        random_material(),
         "wall"
     )
 
@@ -108,7 +112,7 @@ if __name__ == "__main__":
     scene_obj.create_box_with_material(
         [tall_block_width, tall_block_height, tall_block_depth],
         [block_x, tall_block_height/2 + 0.5*wall_width, tall_block_z],
-        "white",
+        random_material(),
         "tall_box"
     )
 
@@ -116,7 +120,7 @@ if __name__ == "__main__":
     scene_obj.create_box_with_material(
         [short_block_width, short_block_height, short_block_depth],
         [block_x, short_block_height/2 + 0.5*wall_width, short_block_z],
-        "white",
+        random_material(),
         "short_box"
     )
 
@@ -130,7 +134,6 @@ if __name__ == "__main__":
     # scene_obj.save()
     scene_obj.export_scene(file_name=output_file)
     print("Wrote box_mesh.usda")
-
 
 
 

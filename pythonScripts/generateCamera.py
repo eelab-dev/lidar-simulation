@@ -14,11 +14,15 @@ if __name__ == "__main__":
     parser.add_argument("--camera_file", type=str, help="Path to generated camera JSON file")    
     parser.add_argument("--detector_width", type=float, help="Detector width in mm")
     parser.add_argument("--detector_height", type=float, help="Detector height in mm")
-
+    parser.add_argument("--up", nargs=3, type=float, help="Camera up direction")
     parser.add_argument("--delay_mean", type=float, help="The mean of delay laser")
     parser.add_argument("--delay_std", type=float, help="The standard devation of delay laser")
 
+    input_up = [0,0,1] 
     args = parser.parse_args()
+    if args.up is not None: 
+        input_up = args.up
+        print("update up to" + str(input_up))
     camera_output_file = args.camera_file
     camear_location = args.camera_location
     camear_look = args.look_at
@@ -28,4 +32,4 @@ if __name__ == "__main__":
     camear_location[2] = camear_location[2] + random_list[2]
     camear_look[0] = camear_look[0] + random_list[0]
     camear_look[1] = camear_look[1] + random_list[1]
-    generate_camera_json(camera_position=camear_location,look_at_point=camear_look,filename=camera_output_file,detector_width=args.detector_width,detector_height=args.detector_height,delay_mean = args.delay_mean,delay_std=args.delay_std)
+    generate_camera_json(up = input_up,camera_position=camear_location,look_at_point=camear_look,filename=camera_output_file,detector_width=args.detector_width,detector_height=args.detector_height,delay_mean = args.delay_mean,delay_std=args.delay_std)
