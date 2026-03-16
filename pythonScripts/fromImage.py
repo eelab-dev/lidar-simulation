@@ -21,7 +21,7 @@ if __name__ == "__main__":
     output_image_name = output_image_name.split('.')[0]
     output_image_name = output_image_name + '_depth.png'
 
-    range_min = 500
+    range_min = 0 
     bin_width = 80 
     args = parser.parse_args()
     input_bin_number = 35
@@ -30,13 +30,13 @@ if __name__ == "__main__":
     if args.input_file:
         input_file_path = args.input_file
 
-    if args.bin_number:
+    if args.bin_number is not None:
         input_bin_number = args.bin_number
 
-    if args.min_range:
+    if args.min_range is not None:
         range_min = args.min_range
 
-    if args.bin_width:
+    if args.bin_width is not None:
         bin_width = args.bin_width
 
     if args.output_image:
@@ -65,7 +65,6 @@ if __name__ == "__main__":
     if args.output_file:
         outputFile = args.output_file
         save_histogram_to_h5(outputFile, stamped_histogram, stamped_collosion ,range_min, range_max, image_width, image_heigh, input_bin_number)
-
 
 
 

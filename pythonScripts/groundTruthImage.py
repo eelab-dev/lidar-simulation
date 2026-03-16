@@ -35,7 +35,7 @@ if __name__ == "__main__":
     if args.bin_number:
         input_bin_number = args.bin_number
 
-    if args.min_range:
+    if args.min_range is not None:
         range_min = args.min_range
 
     if args.bin_width:

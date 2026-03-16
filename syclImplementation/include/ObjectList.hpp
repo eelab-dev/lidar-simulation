@@ -374,6 +374,18 @@ class ObjectList
         }
 
 
+        const float getMaterialDiffuse(long index) const
+        {
+            if (index < 0 || static_cast<size_t>(index) >= _objectListSize)
+            {
+                return -1.0f;
+            }
+
+            Object _object = _objectList[index];
+            return _materialList.getMaterialDiffuse(_object._materialIndex);
+        }
+
+
         Intersection Intersect(const Ray &ray) const 
         {
             return _bvh.Intersect(ray, this);

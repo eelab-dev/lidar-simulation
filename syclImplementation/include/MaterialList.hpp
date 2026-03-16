@@ -55,6 +55,22 @@ class materialList
             return _materialList[index];
         }
 
+        inline float getMaterialDiffuse(long index) const
+        {
+            const Material* material = getMaterial(index);
+            if (material == nullptr)
+            {
+                return -1.0f;
+            }
+
+            if (material->_type != DIFFUSE)
+            {
+                return -1.0f;
+            }
+
+            return clamp(material->_reflectivity, 0.0f, 1.0f);
+        }
+
         ~materialList()
         {
 

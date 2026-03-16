@@ -108,6 +108,29 @@ class syclScene
 
         }
 
+        diffuseRecordStructure doDiffuseMap(const Ray &initialRay, RNG &rng) const
+        {
+            diffuseRecordStructure result;
+            result._hit = false;
+            result._diffuseValue = -1.0f;
+
+            Intersection intersection = castRay(initialRay);
+            if (!intersection._hit)
+            {
+                return result;
+            }
+
+            float diffuseValue = _sceneObject.getMaterialDiffuse(intersection._objectIndex);
+            if (diffuseValue < 0.0f)
+            {
+                return result;
+            }
+
+            result._hit = true;
+            result._diffuseValue = diffuseValue;
+            return result;
+        }
+
         
         resultRecordStructure doSimulation(const Ray &initialRay, RNG &rng) const
         {
@@ -227,9 +250,6 @@ class syclScene
 
 
 };
-
-
-
 
 
 

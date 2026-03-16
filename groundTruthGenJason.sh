@@ -13,7 +13,8 @@ conda activate lidarSimulation
 
 # config="ADS6311/positive/ADS_positive.json"
 # config="ADS_calibration/ADS_calibration.json"
-config="room2/room_2_groundtruth.json"
+# config="room2/room_2_groundtruth.json"
+config="general_positive/general_positive_groundTruth.json"
 # config="ADS6311/negative/ADS_negative.json"
 # config="tmf8829_nls/tmf8829_nls_positive.json"
 config_dir=$(dirname "$config")
@@ -48,7 +49,7 @@ do
 if jq -e '.groundTruth_generation | length > 0' "$config" > /dev/null 2>&1; then
         input_model_dir=$(jq -r '.groundTruth_generation.input_model_dir // "model"' "$config")
         input_model_dir="${config_dir}/${input_model_dir}"
-        input_model_file="${global_prefix}_obj_${i}.obj"
+        input_model_file="${global_prefix}_obj_${i}.usda"
         if jq -e '.groundTruth_generation.static_model' "$config" > /dev/null 2>&1; then
             input_model_file=$(jq -r '.groundTruth_generation.static_model' "$config")
         fi

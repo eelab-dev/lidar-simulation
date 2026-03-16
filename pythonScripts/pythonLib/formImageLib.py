@@ -171,9 +171,22 @@ def from_groundTruth_image(pixels,image_width,image_height):
                 distance_image[i][j] = pixel_distance 
     return distance_image 
 
-            
+def compute_bin_edges(range_min, range_max, bin_number, dnl_row):
+    """
+    Compute bin edges from DNL for a single pixel.
 
-def form_histogram_image(pixels, image_width, image_height,bin_number = 25, range_distance = [1000,2500],peak_func=np.argmax, ):
+    dnl_row: shape (B,)
+    """
+    ideal_width = (range_max - range_min) / bin_number
+    widths = ideal_width * (1 + dnl_row)
+
+    edges = np.zeros(bin_number + 1)
+    edges[0] = range_min
+    edges[1:] = range_min + np.cumsum(widths)
+
+    return edges           
+
+def form_histogram_image(pixels, image_width, image_height,bin_number = 25, range_distance = [1000,2500],peak_func=np.argmax, dnl_matrix = None):
     illegal_photon = np.empty((image_width,image_height), dtype=object)
     for i, j in np.ndindex(image_width,image_height):
         illegal_photon[i, j] = []
@@ -183,25 +196,39 @@ def form_histogram_image(pixels, image_width, image_height,bin_number = 25, rang
     distance_image = np.zeros((image_width,image_height), dtype=np.float32)
     range_min = range_distance[0]
     range_max = range_distance[1]
+    if dnl_matrix is None:
+        ideal_edges = np.linspace(range_min,range_max,bin_number+1)
+
     bin_width = (range_max - range_min)/bin_number
     for i in range(image_width):
         for j in range(image_height): 
+            # --- choose bin edges
+            if dnl_matrix is None:
+                edges = ideal_edges
+            else:
+                edges = compute_bin_edges(
+                    range_min, range_max, bin_number, dnl_matrix[i, j]
+                )
             photon_number = len(pixels[i][j])
             for k in range(photon_number):
                 distance = pixels[i][j][k][0]
                 collosion = pixels[i][j][k][1]
-                if range_distance[0] > distance or range_distance[1] < distance:
+                if range_min> distance or range_max < distance:
                     illegal_photon[i][j].append((distance,collosion))
-                else:
-                    bin_index = min(int((distance - range_min) / bin_width), bin_number - 1)
-                    stamped_histogram[i, j, bin_index] += 1
-                    stamped_collosion[i,j, bin_index] += collosion
+                    continue
+                
+                # find bin index using edges
+                bin_index = np.searchsorted(edges, distance) - 1
+                bin_index = np.clip(bin_index, 0, bin_number - 1)
+                stamped_histogram[i, j, bin_index] += 1
+                stamped_collosion[i,j, bin_index] += collosion
+
             for k in range(bin_number):
-                if stamped_histogram[i,j].sum() > 0:
+                if stamped_histogram[i,j,k] > 0:
                     stamped_collosion[i,j,k] = stamped_collosion[i,j,k]/stamped_histogram[i,j,k]
                 
             max_bin_index = peak_func(stamped_histogram[i, j])
-            if max_bin_index > 0:
+            if stamped_histogram[i,j].sum() > 0: 
                 distance_image[i, j] = range_min + (max_bin_index + 0.5) * bin_width
     return distance_image, illegal_photon, stamped_histogram, stamped_collosion
 
@@ -265,9 +292,12 @@ def display_image(image, rectangle=None,distance_range = [2100,3000]):
 
     # Ensure the directory exists
     # os.makedirs(os.path.dirname(imageFileName), exist_ok=True)
+    
     plt.imshow(show_image.T,origin = 'lower' ,cmap=cmap,vmin = range_min,vmax=range_max ,interpolation='nearest')
     plt.colorbar()
+    # plt.axis('off')
     # plt.savefig(imageFileName, format='png', dpi=600, transparent=True)
+    # plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
     plt.show()
 # depthmap = mcolors.LinearSegmentedColormap.from_list('depth_cmap', colors, N=256)
 # def display_image(image, distance_range=[2100, 3000], window_name="LiDAR Display"):

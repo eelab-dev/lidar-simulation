@@ -26,6 +26,6 @@ if __name__ == "__main__":
         sys.exit(1)
     obj_to_remove = "short_box"
 
-    myScene = scene.from_obj(input_file)
+    myScene = scene.from_usd_file(input_file)
     myScene.remove_geometry_by_name(obj_to_remove)
     myScene.export_scene(output_file)

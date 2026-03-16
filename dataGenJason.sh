@@ -22,7 +22,7 @@ conda activate lidarSimulation
 # config="room1/room_1_simulation.json"
 # config="ADS6311/negative/ADS_negative.json"
 
-config="general_positive/general_positive.json"
+config="general_negative/general_negative.json"
 config_dir=$(dirname "$config")
 
 endIndex=$(jq -r '.global_settings.end_index// empty' "$config")
@@ -129,7 +129,7 @@ do
             output_model_dir="${config_dir}/${output_model_dir}"
             mkdir -p "$output_model_dir"
 
-            output_model_file="${global_prefix}_obj_${i}.obj"
+            output_model_file="${global_prefix}_obj_${i}.usda"
             output_model_file_path="${output_model_dir}/${output_model_file}"
 
             python3 pythonScripts/removeSmallBox.py \

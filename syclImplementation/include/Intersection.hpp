@@ -22,3 +22,9 @@ struct resultRecordStructure{
     myComputeType _travelDistance = 0;
     float _emission_delay = 0;
 };
+
+
+struct diffuseRecordStructure{
+    bool _hit = false;
+    float _diffuseValue = -1;
+};
