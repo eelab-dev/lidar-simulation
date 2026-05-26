@@ -30,6 +30,10 @@ public:
         return position;
     }
 
+    Vec3 getDetectorPosition() const{
+        return detectorCenter;
+    }
+
     Vec3 getRayDirection(myComputeType x, myComputeType y, RNG &rng) const {
         // myComputeType aspectRatio = static_cast<myComputeType>(width) / static_cast<myComputeType>(height);
         myComputeType halfFovTanX = std::tan(Radians(fov_x) * 0.5f);
@@ -46,12 +50,33 @@ public:
         return rayDir;
     }
 
+    Vec3 getRayDirection_gasussian(myComputeType x, myComputeType y, RNG &rng) const {
+        const myComputeType halfFovTanX = std::tan(Radians(fov_x) * 0.5f);
+        const myComputeType halfFovTanY = std::tan(Radians(fov_y) * 0.5f);
+
+        // Start from the beam center for this channel instead of sampling inside a rectangle cell.
+        const myComputeType centerViewX = (2.0f * (x + 0.5f) / width - 1.0f) * halfFovTanX;
+        const myComputeType centerViewY = (1.0f - 2.0f * (y + 0.5f) / height) * halfFovTanY;
+
+        // Model the emitted beam as a 2D Gaussian in angular space.
+        const myComputeType pixelPitchX = (2.0f * halfFovTanX) / width;
+        const myComputeType pixelPitchY = (2.0f * halfFovTanY) / height;
+        const myComputeType sigmaScale = 0.35f;
+        const myComputeType beamOffsetX = sampleGaussian(rng) * pixelPitchX * sigmaScale;
+        const myComputeType beamOffsetY = sampleGaussian(rng) * pixelPitchY * sigmaScale;
+
+        const myComputeType viewX = centerViewX + beamOffsetX;
+        const myComputeType viewY = centerViewY + beamOffsetY;
+
+        return (viewX * right + viewY * up + forward).normalized();
+    }
 
 
-    std::pair<Triangle, Triangle> generateDetector(const myComputeType detectorWidth, const myComputeType detectorHeight, Vec3 detectorOffset = Vec3(5,0,0)) const {
+
+    std::pair<Triangle, Triangle> generateDetector(const myComputeType detectorWidth, const myComputeType detectorHeight, Vec3 detectorOffset = Vec3(5,0,0)) {
         // Calculate the center of the detector plate in world space
 
-        Vec3 detectorCenter = position + (right * detectorOffset[0]) +( up * detectorOffset[1]) + (forward * detectorOffset[2]);
+        detectorCenter = position + (right * detectorOffset[0]) +( up * detectorOffset[1]) + (forward * detectorOffset[2]);
 
         // Get the scaled vectors for the corners of the plate using the user-provided dimensions
         Vec3 halfWidthVec = right * (detectorWidth / 2.0f);
@@ -95,6 +120,16 @@ private:
     int width, height;
     myComputeType fov_x,fov_y;
     Vec3 position, lookAt, up, right, forward;
+    Vec3 detectorCenter;
+    myComputeType sampleGaussian(RNG &rng) const {
+        myComputeType u1 = get_random_float(rng);
+        myComputeType u2 = get_random_float(rng);
+        u1 = sycl::fmax(u1, static_cast<myComputeType>(1e-6f));
+
+        const myComputeType radius = sycl::sqrt(-2.0f * sycl::log(u1));
+        const myComputeType angle = 2.0f * static_cast<myComputeType>(M_PI) * u2;
+        return radius * sycl::cos(angle);
+    }
 
     // void updateBasis() {
     //     forward = (lookAt - position).normalized();
@@ -121,4 +156,3 @@ private:
     up = crossProduct(forward, right).normalized();
 }
 };
-

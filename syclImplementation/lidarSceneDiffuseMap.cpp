@@ -124,9 +124,9 @@ int main(int argc, char* argv[])
 
       for (int s = 0; s < ssp; ++s)
       {
-        RNG rng(seed + i + j * imageWidth + s * ssp);
+        RNG rng(makeSampleSeed(seed, i, j, imageWidth, s));
         Vec3 rayDir = cameraAcc[0].getRayDirection(i, j, rng);
-        Ray ray(cameraAcc[0].getPosition(), rayDir);
+        Ray ray(cameraAcc[0].getDetectorPosition(), rayDir);
         auto tem = sceneAcc[0].doDiffuseMap(ray, rng);
 
         if (tem._hit && tem._diffuseValue >= 0.0f)

@@ -114,8 +114,10 @@ Intersection Triangle::getIntersection_virtual(const Ray& ray) const
 
     t_tmp = dotProduct(e2, qvec) * inv_det;
 
-    // Prevent false rejection due to very small t_tmp
-    if (t_tmp < -MyEPSILON)  
+    const myComputeType rayTMin = computeRayEpsilon(ray.origin);
+
+    // Require a forward hit that clears the current ray-origin offset.
+    if (t_tmp <= rayTMin)  
     {
         intersection._hit = false;
         return intersection;
@@ -148,7 +150,6 @@ inline std::ostream& operator<<(std::ostream& os, const Triangle& tri)
     os << "  area: " << area << "\n";
     return os;
 }
-
 
 
 

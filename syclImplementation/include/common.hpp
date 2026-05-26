@@ -1,5 +1,6 @@
 #pragma once 
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <TypeDefine.hpp>
 #include <random>
@@ -27,14 +28,45 @@ myComputeType get_random_float(RNG &rng)
     return distribution(rng);
 }
 
-float sample_delay_distance( myComputeType mean_m, myComputeType std_m, RNG &rng) 
+inline std::uint32_t mixSeed(std::uint64_t value)
 {
+    value += 0x9E3779B97F4A7C15ull;
+    value = (value ^ (value >> 30)) * 0xBF58476D1CE4E5B9ull;
+    value = (value ^ (value >> 27)) * 0x94D049BB133111EBull;
+    value ^= value >> 31;
+    return static_cast<std::uint32_t>(value) | 1u;
+}
 
+inline std::uint32_t makeSampleSeed(std::uint32_t baseSeed, int x, int y, int width, int sampleIndex)
+{
+    const std::uint64_t pixelIndex =
+        static_cast<std::uint64_t>(y) * static_cast<std::uint64_t>(width) +
+        static_cast<std::uint64_t>(x);
+    const std::uint64_t sampleKey =
+        (static_cast<std::uint64_t>(baseSeed) << 32) ^
+        (pixelIndex << 1) ^
+        static_cast<std::uint64_t>(sampleIndex);
+    return mixSeed(sampleKey);
+}
 
-    oneapi::dpl::normal_distribution<myComputeType> distribution(mean_m, std_m);
+inline myComputeType maxAbsComponent(const Vec3& v)
+{
+    return std::max(std::max(sycl::fabs(v.x), sycl::fabs(v.y)), sycl::fabs(v.z));
+}
 
-    return distribution(rng);
+inline myComputeType computeRayEpsilon(const Vec3& position)
+{
+    const myComputeType scale = 1.0f + maxAbsComponent(position);
+    return std::max((myComputeType)1e-5f, 64.0f * MyEPSILON * scale);
+}
 
+inline Vec3 offsetRayOrigin(const Vec3& position, const Vec3& normal, const Vec3& direction)
+{
+    Vec3 orientedNormal = normal.normalized();
+    if (dotProduct(direction, orientedNormal) < 0.0f) {
+        orientedNormal = -orientedNormal;
+    }
+    return position + orientedNormal * computeRayEpsilon(position);
 }
 
 inline Vec3 toWorld(const Vec3 &a, const Vec3 &N){

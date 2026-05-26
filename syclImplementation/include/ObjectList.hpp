@@ -487,7 +487,7 @@ Intersection BVHArray::Intersect(const Ray& ray, const ObjectList* objects) cons
 Intersection BVHArray::getIntersection(const long index, const Ray &ray,
                                        const ObjectList *objects) const {
 
- const float EPSILON = 1e-6f;  // Minimum valid ray distance
+  const myComputeType rayTMin = computeRayEpsilon(ray.origin);
   if (!haveNode(index))
     return Intersection();
 
@@ -516,7 +516,7 @@ Intersection BVHArray::getIntersection(const long index, const Ray &ray,
     if (curNode->_objectIndex >= 0) {
       auto curObjectIndex = curNode->_objectIndex;
       Intersection tmp = objects->getIntersection(ray, curObjectIndex);
-      if (tmp._hit && tmp._distance > EPSILON && tmp._distance < inter._distance) {
+      if (tmp._hit && tmp._distance > rayTMin && tmp._distance < inter._distance) {
         inter = tmp;
       }
       continue;
@@ -548,7 +548,7 @@ Intersection BVHArray::getIntersection(const long index, const Ray &ray,
     const size_t objectCount = objects->getObjectsListSize();
     for (size_t i = 0; i < objectCount; i++) {
       Intersection tmp = objects->getIntersection(ray, static_cast<long>(i));
-      if (tmp._hit && tmp._distance > EPSILON && tmp._distance < inter._distance) {
+      if (tmp._hit && tmp._distance > rayTMin && tmp._distance < inter._distance) {
         inter = tmp;
       }
     }

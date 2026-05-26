@@ -29,10 +29,6 @@ int main(int argc, char* argv[]){
   float detectorDistance = 560;
   float detectorWidth = 20;
   float detectorHeight = 20;
-  myComputeType delay_mean = 44.52;
-  myComputeType delay_std = 195;
-
-  delay_std = 595;
   // // Parse flags
   // std::unordered_map<std::string, std::string> args = parseFlags(argc, argv);
 
@@ -63,8 +59,6 @@ int main(int argc, char* argv[]){
   if (args.count("--detectorWidth") && !args["--detectorWidth"].empty()) detectorWidth= std::stof(args["--detectorWidth"][0]);
   if (args.count("--detectorHeight") && !args["--detectorHeight"].empty()) detectorHeight= std::stof(args["--detectorHeight"][0]);
   
-  if (args.count("--delay_mean") && !args["--delay_mean"].empty()) delay_mean= std::stof(args["--delay_mean"][0]);
-  if (args.count("--delay_std") && !args["--delay_std"].empty()) delay_std= std::stof(args["--delay_std"][0]);
   Vec3 cameraPosition(0.0f, 330.0f, 250 + detectorDistance + 10); // Example camera position
   Vec3 lookAt(0.0f, 274.0f, 0.0f); // Look at the center of the Cornell Box
   Vec3 up(0.0f, 1.0f, 0.0f); // Up direction
@@ -171,13 +165,12 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
 
   for (int s = 0; s < ssp; ++s) 
   {
-    RNG rng(seed + i + j * imageWidth + s *ssp);
-    Vec3 rayDir = cameraAcc[0].getRayDirection(i, j, rng); 
+    RNG rng(makeSampleSeed(seed, i, j, imageWidth, s));
+    RNG lauchrng(seed + i + j * imageWidth + s *ssp);
+    // Vec3 rayDir = cameraAcc[0].getRayDirection(i, j, rng); 
+    Vec3 rayDir = cameraAcc[0].getRayDirection_gasussian(i, j, rng); 
     Ray ray(cameraAcc[0].getPosition(), rayDir); 
-    float delay_distance = sample_delay_distance(delay_mean,delay_std,rng);
-
-    auto tem = sceneAcc[0].doSimulation(ray, rng);
-    tem._emission_delay = delay_distance;    
+    auto tem = sceneAcc[0].doSimulation(ray, lauchrng);
     // out << ray.direction.x << " " << ray.direction.y << " " << ray.direction.z << sycl::endl;
     // if (tem._collisionCount !=0){
     //   out << tem._collisionCount<< sycl::endl;
@@ -195,14 +188,13 @@ cgh.parallel_for(sycl::range<2>(imageWidth, imageHeight), [=](sycl::id<2> index)
       if (idx < static_cast<int>(recordSize))
       {
         collision_acc[idx].collisionCount = tem._collisionCount;
-        tem._emission_delay = 0;      
-        collision_acc[idx].distance = tem._travelDistance + tem._emission_delay;
+        collision_acc[idx].distance = tem._travelDistance;
         collision_acc[idx].collisionLocation = tem._position;
         collision_acc[idx].collisionDirection = cameraAcc[0].toCameraBase(tem._direction);
         collision_acc[idx].camera_x = i/widthUnit;
         collision_acc[idx].camera_y = j/heightUnit;
 
-        collision_acc[idx].emission_delay = tem._emission_delay;
+        collision_acc[idx].emission_delay = 0.0f;
       }
     }
   }

@@ -22,7 +22,10 @@ conda activate lidarSimulation
 # config="room1/room_1_simulation.json"
 # config="ADS6311/negative/ADS_negative.json"
 
-config="general_negative/general_negative.json"
+default_config="general_negative/general_negative.json"
+# default_config="general_positive/general_positive.json"
+
+config="${1:-$default_config}"
 config_dir=$(dirname "$config")
 
 endIndex=$(jq -r '.global_settings.end_index// empty' "$config")
@@ -120,7 +123,10 @@ do
     if jq -e '.objectRemove_process | length > 0' "$config" > /dev/null 2>&1; then
         input_model_dir=$(jq -r '.objectRemove_process.input_model_dir' "$config")
         input_model_dir="${config_dir}/${input_model_dir}"
-        input_model_file_prefix=$(jq -r '.objectRemove_process.input_model_file_prefix' "$config")
+        input_model_file_prefix=$(jq -r '.objectRemove_process.input_model_file_prefix // empty' "$config")
+        if [ -z "$input_model_file_prefix" ]; then
+            input_model_file_prefix="$global_prefix"
+        fi
         input_model_file="${input_model_file_prefix}_obj_${i}.usda"
         input_model_file_path="${input_model_dir}/${input_model_file}"
 
@@ -279,7 +285,15 @@ do
         export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
 
         input_rawData_dir=$(jq -r '.pixelization_process.input_rawData_dir' "$config")
-        input_rawData_dir="${config_dir}/${input_rawData_dir}"
+
+        remote_input_prefix=$(jq -r '.pixelization_process.remote_input_prefix // empty' "$config")
+
+        if [ -n "$remote_input_prefix" ]; then
+            input_rawData_dir="${remote_input_prefix}/${input_rawData_dir}"
+        else
+            input_rawData_dir="${config_dir}/${input_rawData_dir}"
+        fi
+      
         input_rawData_file="${global_prefix}_rawData_${i}.h5"
         input_rawData_file_path="${input_rawData_dir}/${input_rawData_file}"
         if [ -f "$input_rawData_file_path" ]; then
@@ -381,5 +395,26 @@ do
     fi
 
 
+    if jq -e '.mv_file | length > 0' "$config" > /dev/null 2>&1; then
+        destination_pixelized_dir=$(jq -r '.mv_file.destination_pixelized_dir // empty' "$config")
+
+        if [ -n "$destination_pixelized_dir" ] && jq -e '.pixelization_process | length > 0' "$config" > /dev/null 2>&1; then
+            source_pixelized_dir=$(jq -r '.pixelization_process.output_pixelized_dir // "pixelizedData"' "$config")
+            source_pixelized_dir="${config_dir}/${source_pixelized_dir}"
+
+            destination_pixelized_dir="${destination_pixelized_dir}"
+            mkdir -p "$destination_pixelized_dir"
+
+            pixelized_file="${global_prefix}_pixelized_${i}.h5"
+            source_pixelized_file_path="${source_pixelized_dir}/${pixelized_file}"
+            destination_pixelized_file_path="${destination_pixelized_dir}/${pixelized_file}"
+
+            if [ -f "$source_pixelized_file_path" ]; then
+                mv "$source_pixelized_file_path" "$destination_pixelized_file_path"
+            else
+                echo "Skipping pixelized file move: $source_pixelized_file_path does not exist"
+            fi
+        fi
+    fi
 
 done
